@@ -1,6 +1,6 @@
 {
 	"name": "sports-oracle",
-	"description": "Sports result oracle on Byteball platform",
+	"description": "Sports results oracle on Byteball platform",
 	"author": "Byteball",
 	"version": "0.1.0",
 	"main": "start.js",

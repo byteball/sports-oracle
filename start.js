@@ -190,7 +190,7 @@ eventBus.on('paired', function(from_address){
 	device.sendMessageToDevice(from_address, 'text', getInstruction());
 });
 
-function removeAbbreviation(text) {
+function removeAbbreviations(text) {
 	return text.replace(/\b(FC|AS|CF|RC)\b/g, '').trim();
 }
 
@@ -212,16 +212,16 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 		var result = '';
 
 		for(var i = jsonResult.count - 1; i >= 0; i--) {
-			var fixtureHomeTeamName = removeAbbreviation(fixtures[i].homeTeamName).replace(/\s/g,'').toUpperCase();
-			var fixtureAwayTeamName = removeAbbreviation(fixtures[i].awayTeamName).replace(/\s/g,'').toUpperCase();
+			var fixtureHomeTeamName = removeAbbreviations(fixtures[i].homeTeamName).replace(/\s/g,'').toUpperCase();
+			var fixtureAwayTeamName = removeAbbreviations(fixtures[i].awayTeamName).replace(/\s/g,'').toUpperCase();
 
 			if((fixtureHomeTeamName === homeTeamName && fixtureAwayTeamName  === awayTeamName) || (fixtureHomeTeamName === awayTeamName && fixtureAwayTeamName  === homeTeamName)) {
 				if (fixtures[i].result.goalsHomeTeam === fixtures[i].result.goalsAwayTeam) {
 					result = 'draw';
 				} else if (fixtures[i].result.goalsHomeTeam > fixtures[i].result.goalsAwayTeam) {
-					result = removeAbbreviation(fixtures[i].homeTeamName);
+					result = removeAbbreviations(fixtures[i].homeTeamName);
 				} else {
-					result = removeAbbreviation(fixtures[i].awayTeamName);
+					result = removeAbbreviations(fixtures[i].awayTeamName);
 				}
 
 				var feed_name = fixtureHomeTeamName + '_' + fixtureAwayTeamName + '_' + moment.utc(fixtures[i].date).format("DD-MM-YYYY");
@@ -233,7 +233,7 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 }
 
 function getResponseText(homeTeamName, awayTeamName, date, result, is_stable) {
-	return removeAbbreviation(homeTeamName) + ' VS ' + removeAbbreviation(awayTeamName) + ' '
+	return removeAbbreviations(homeTeamName) + ' VS ' + removeAbbreviations(awayTeamName) + ' '
 		+ moment.utc(date).format("DD-MMMM-YYYY") + ', '
 		+ (result === 'draw' ? 'draw' : result + ' won')
 		+ (is_stable
@@ -250,8 +250,8 @@ eventBus.on('text', function(from_address, text){
 		var splitText = ucText.split(/\s-\s|\sVS\s|\sVS.\s|\//);
 		
 		if(splitText.length === 2) {
-			var team1Name = removeAbbreviation(splitText[0]).replace(/\s/g,'');
-			var team2Name = removeAbbreviation(splitText[1]).replace(/\s/g,'');
+			var team1Name = removeAbbreviations(splitText[0]).replace(/\s/g,'');
+			var team2Name = removeAbbreviations(splitText[1]).replace(/\s/g,'');
 			
 			fetchDataFromFootballDataOrg(team1Name, team2Name, function(error, feed_name, homeTeamName, awayTeamName, result, date, body) {
 				if (error) {
