@@ -182,7 +182,7 @@ function readExistingData(feed_name, device_address, handleResult){
 }
 
 function getInstruction(){
-	return "Please write the team names in the format: \n name1 / name2 \nExample: Manchester City / West Bromwich Albion";
+	return "Please write the team names in the format:\n team1 vs team2 \nExample: Southampton vs Manchester United";
 }
 
 eventBus.on('paired', function(from_address){
@@ -191,7 +191,7 @@ eventBus.on('paired', function(from_address){
 });
 
 function removeAbbreviations(text) {
-	return text.replace(/\b(FC|AS|CF|RC)\b/g, '').trim();
+	return text.replace(/\b(FC|AFC|AS|CF|RC)\b/g, '').trim();
 }
 
 function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
@@ -215,7 +215,7 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 			var fixtureHomeTeamName = removeAbbreviations(fixtures[i].homeTeamName).replace(/\s/g,'').toUpperCase();
 			var fixtureAwayTeamName = removeAbbreviations(fixtures[i].awayTeamName).replace(/\s/g,'').toUpperCase();
 
-			if((fixtureHomeTeamName === homeTeamName && fixtureAwayTeamName  === awayTeamName) || (fixtureHomeTeamName === awayTeamName && fixtureAwayTeamName  === homeTeamName)) {
+			if((fixtureHomeTeamName === homeTeamName && fixtureAwayTeamName === awayTeamName) || (fixtureHomeTeamName === awayTeamName && fixtureAwayTeamName  === homeTeamName)) {
 				if (fixtures[i].result.goalsHomeTeam === fixtures[i].result.goalsAwayTeam) {
 					result = 'draw';
 				} else if (fixtures[i].result.goalsHomeTeam > fixtures[i].result.goalsAwayTeam) {
@@ -233,8 +233,8 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 }
 
 function getResponseText(homeTeamName, awayTeamName, date, result, is_stable) {
-	return removeAbbreviations(homeTeamName) + ' VS ' + removeAbbreviations(awayTeamName) + ' '
-		+ moment.utc(date).format("DD-MMMM-YYYY") + ', '
+	return removeAbbreviations(homeTeamName) + ' vs ' + removeAbbreviations(awayTeamName) + '\n'
+		+ 'on ' + moment.utc(date).format("DD MMMM YYYY") + '\n'
 		+ (result === 'draw' ? 'draw' : result + ' won')
 		+ (is_stable
 			? "\n\nThe data is already in the database, you can unlock your smart contract now."
@@ -246,25 +246,25 @@ eventBus.on('text', function(from_address, text){
 	text = text.trim();
 	let ucText = text.toUpperCase();
 	
-	if(ucText.indexOf('/') !== -1 || ucText.indexOf(' VS ') !== -1 || ucText.indexOf(' VS. ') !== -1 || ucText.indexOf(' - ') !== -1) {
-		var splitText = ucText.split(/\s-\s|\sVS\s|\sVS.\s|\//);
+	if(ucText.indexOf('/') !== -1 || ucText.indexOf(' VS ') !== -1 || ucText.indexOf(' VS. ') !== -1 || ucText.indexOf(' V ') !== -1 || ucText.indexOf(' V. ') !== -1 || ucText.indexOf(' - ') !== -1) {
+		var splitText = ucText.split(/\s-\s|\sVS\s|\sVS\.\s|\sV\s|\sV\.\s/);
 		
 		if(splitText.length === 2) {
 			var team1Name = removeAbbreviations(splitText[0]).replace(/\s/g,'');
 			var team2Name = removeAbbreviations(splitText[1]).replace(/\s/g,'');
 			
 			fetchDataFromFootballDataOrg(team1Name, team2Name, function(error, feed_name, homeTeamName, awayTeamName, result, date, body) {
-				if (error) {
+				if (error)
 					return device.sendMessageToDevice(from_address, 'text', error);
-				}
+				var datafeed_result = result.toUpperCase().replace(/\s/g, '');
 				db.query("INSERT INTO sports_responses (device_address, feed_name, response) VALUES(?,?,?)", [from_address, feed_name, body], function() {});
 				readExistingData(feed_name, from_address, function(exists, is_stable, value) {
 					if (!exists) {
 						var datafeed = {};
-						datafeed[feed_name] = result.toUpperCase();
+						datafeed[feed_name] = datafeed_result;
 						reliablyPostDataFeed(datafeed, from_address);
 						device.sendMessageToDevice(from_address, 'text', getResponseText(homeTeamName, awayTeamName, date, result, 0))
-					} else if (result.toUpperCase() === value) {
+					} else if (datafeed_result === value) {
 						device.sendMessageToDevice(from_address, 'text', getResponseText(homeTeamName, awayTeamName, date, result, is_stable))
 					} else {
 						notifications.notifyAdmin('Values are not equal', JSON.stringify({
@@ -295,7 +295,7 @@ eventBus.on('my_transactions_became_stable', function(arrUnits){
 				return;
 			let arrDeviceAddresses = _.uniq(assocDeviceAddressesByFeedName[feed_name].addresses);
 			arrDeviceAddresses.forEach(device_address => {
-				device.sendMessageToDevice(device_address, 'text', "The data about your sports "+feed_name+" is now in the database, you can unlock your contract.");
+				device.sendMessageToDevice(device_address, 'text', "The data about the sports event "+feed_name+" is now in the database, you can unlock your contract.");
 			});
 			delete assocDeviceAddressesByFeedName[feed_name];
 		});
