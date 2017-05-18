@@ -1,11 +1,11 @@
 {
-  "name": "football-result-oracle",
-  "description": "Football result oracle on Byteball platform",
+  "name": "sports-oracle",
+  "description": "Sports result oracle on Byteball platform",
   "author": "Byteball",
   "version": "0.1.0",
   "main": "start.js",
   "keywords": [
-    "football",
+    "sport",
     "oracle",
     "data feed",
     "witness",
@@ -13,11 +13,11 @@
   ],
   "license": "MIT",
   "repository": {
-    "url": "git://github.com/xJeneKx/football-result-oracle.git",
+    "url": "git://github.com/byteball/sports-oracle.git",
     "type": "git"
   },
   "bugs": {
-    "url": "https://github.com/xJeneKx/football-result-oracle/issues"
+    "url": "https://github.com/byteball/sports-oracle/issues"
   },
   "browser": {
     "request": "browser-request",
@@ -27,6 +27,6 @@
     "moment": "^2.18.1",
 	"request": "^2.79.0",
     "byteballcore": "^0.2.18",
-    "byteball-witness": "git+https://github.com/byteball/byteball-witness.git"
+    "byteball-witness": "git+https://github.com/byteball/sports-oracle.git"
   }
 }

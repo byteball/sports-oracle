@@ -207,14 +207,14 @@ eventBus.on('text', function(from_address, text){
 			var awayTeamName = removeAbbreviation(splitText[1]).replace(/\s/g,'');
 			
 			request({
-				url: 'http://api.football-data.org/v1/fixtures/?timeFrame=p3',
+				url: 'https://api.football-data.org/v1/fixtures/?timeFrame=p3',
 				headers:{
 					'X-Auth-Token': conf.footballDataApiKey
 				}
 			}, function(error, response, body) {
 				if (error || response.statusCode !== 200){
-					notifications.notifyAdminAboutPostingProblem("getting football data failed: "+error+", status="+response.statusCode);
-					return device.sendMessageToDevice(from_address, 'text', "Failed to fetch football data.");
+					notifications.notifyAdminAboutPostingProblem("getting sports data failed: "+error+", status="+response.statusCode);
+					return device.sendMessageToDevice(from_address, 'text', "Failed to fetch sports data.");
 				}
 				console.log('response:\n'+body);
 				var jsonResult = JSON.parse(body);
@@ -279,7 +279,7 @@ eventBus.on('my_transactions_became_stable', function(arrUnits){
 				return;
 			let arrDeviceAddresses = _.uniq(assocDeviceAddressesByFeedName[feed_name].addresses);
 			arrDeviceAddresses.forEach(device_address => {
-				device.sendMessageToDevice(device_address, 'text', "The data about your football "+feed_name+" is now in the database, you can unlock your contract.");
+				device.sendMessageToDevice(device_address, 'text', "The data about your sports "+feed_name+" is now in the database, you can unlock your contract.");
 			});
 			delete assocDeviceAddressesByFeedName[feed_name];
 		});

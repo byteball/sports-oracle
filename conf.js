@@ -10,7 +10,7 @@ exports.storage = 'sqlite';
 
 
 exports.hub = 'byteball.org/bb';
-exports.deviceName = 'Flight delays oracle';
+exports.deviceName = 'sports oracle';
 exports.permanent_paring_secret = '0000';
 exports.control_addresses = ['DEVICE ALLOWED TO CHAT'];
 exports.payout_address = 'WHERE THE MONEY CAN BE SENT TO';
@@ -27,4 +27,4 @@ exports.footballDataApiKey = '';
 
 exports.KEYS_FILENAME = 'keys.json';
 
-console.log('finished flight delays conf');
+console.log('finished sports oracle conf');
