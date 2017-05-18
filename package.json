@@ -27,6 +27,6 @@
 		"moment": "^2.18.1",
 		"request": "^2.79.0",
 		"byteballcore": "^0.2.18",
-		"byteball-witness": "git+https://github.com/byteball/sports-oracle.git"
+		"byteball-witness": "git+https://github.com/byteball/byteball-witness.git"
 	}
 }
