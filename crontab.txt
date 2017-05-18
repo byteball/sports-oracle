@@ -1,0 +1,1 @@
+*/20 * * * * cd flight-delays-oracle; node check_daemon.js 1>>~/.config/flight-delays-oracle/check_daemon.log 2>>~/.config/flight-delays-oracle/check_daemon.err
