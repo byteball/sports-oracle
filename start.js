@@ -194,6 +194,44 @@ function removeAbbreviation(text) {
 	return text.replace(/\b(FC|AS|CF|RC)\b/g, '').trim();
 }
 
+function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, from_address, callback) {
+	request({
+		url: 'https://api.football-data.org/v1/fixtures/?timeFrame=p3',
+		headers:{
+			'X-Auth-Token': conf.footballDataApiKey
+		}
+	}, function(error, response, body) {
+		if (error || response.statusCode !== 200){
+			notifications.notifyAdminAboutPostingProblem("getting sports data failed: "+error+", status="+response.statusCode);
+			return device.sendMessageToDevice(from_address, 'text', "Failed to fetch sports data.");
+		}
+		console.log('response:\n'+body);
+		var jsonResult = JSON.parse(body);
+		var fixtures = jsonResult.fixtures;
+		var result = '';
+
+		for(var i = jsonResult.count - 1; i >= 0; i--) {
+			var fixtureHomeTeamName = removeAbbreviation(fixtures[i].homeTeamName).replace(/\s/g,'').toUpperCase();
+			var fixtureAwayTeamName = removeAbbreviation(fixtures[i].awayTeamName).replace(/\s/g,'').toUpperCase();
+
+			if((fixtureHomeTeamName === homeTeamName && fixtureAwayTeamName  === awayTeamName) || (fixtureHomeTeamName === awayTeamName && fixtureAwayTeamName  === homeTeamName)) {
+				if (fixtures[i].result.goalsHomeTeam === fixtures[i].result.goalsAwayTeam) {
+					result = 'draw';
+				} else if (fixtures[i].result.goalsHomeTeam > fixtures[i].result.goalsAwayTeam) {
+					result = removeAbbreviation(fixtures[i].homeTeamName);
+				} else {
+					result = removeAbbreviation(fixtures[i].awayTeamName);
+				}
+
+				var feed_name = fixtureHomeTeamName + '_' + fixtureAwayTeamName + '_' + moment.utc(fixtures[i].date).format("DD-MM-YYYY");
+				db.query("INSERT INTO sports_responses (device_address, feed_name, response) VALUES(?,?,?)", [from_address, feed_name, body], function(){});
+				return callback(feed_name, fixtures[i].homeTeamName, fixtures[i].awayTeamName, result, fixtures[i].date);
+			}
+		}
+		return device.sendMessageToDevice(from_address, 'text', 'Not found');
+	});
+}
+
 eventBus.on('text', function(from_address, text){
 	var device = require('byteballcore/device.js');
 	text = text.trim();
@@ -206,60 +244,26 @@ eventBus.on('text', function(from_address, text){
 			var homeTeamName = removeAbbreviation(splitText[0]).replace(/\s/g,'');
 			var awayTeamName = removeAbbreviation(splitText[1]).replace(/\s/g,'');
 			
-			request({
-				url: 'https://api.football-data.org/v1/fixtures/?timeFrame=p3',
-				headers:{
-					'X-Auth-Token': conf.footballDataApiKey
-				}
-			}, function(error, response, body) {
-				if (error || response.statusCode !== 200){
-					notifications.notifyAdminAboutPostingProblem("getting sports data failed: "+error+", status="+response.statusCode);
-					return device.sendMessageToDevice(from_address, 'text', "Failed to fetch sports data.");
-				}
-				console.log('response:\n'+body);
-				var jsonResult = JSON.parse(body);
-				var fixtures = jsonResult.fixtures;
-				var result = '';
-				
-				for(var i = jsonResult.count - 1; i >= 0; i--) {
-					var fixtureHomeTeamName = removeAbbreviation(fixtures[i].homeTeamName).replace(/\s/g,'').toUpperCase();
-					var fixtureAwayTeamName = removeAbbreviation(fixtures[i].awayTeamName).replace(/\s/g,'').toUpperCase();
-					
-					if((fixtureHomeTeamName === homeTeamName && fixtureAwayTeamName  === awayTeamName) || (fixtureHomeTeamName === awayTeamName && fixtureAwayTeamName  === homeTeamName)) {
-						if (fixtures[i].result.goalsHomeTeam === fixtures[i].result.goalsAwayTeam) {
-							result = 'draw';
-						} else if (fixtures[i].result.goalsHomeTeam > fixtures[i].result.goalsAwayTeam) {
-							result = removeAbbreviation(fixtures[i].homeTeamName);
-						} else {
-							result = removeAbbreviation(fixtures[i].awayTeamName);
-						}
-						
-						var feed_name = '_'+ fixtureHomeTeamName + '_' + fixtureAwayTeamName + '_' + moment.utc(fixtures[i].date).format("DD-MM-YYYY");
-						db.query("INSERT INTO sports_responses (device_address, feed_name, response) VALUES(?,?,?)", [from_address, feed_name, body], function(){});
-						
-						readExistingData(feed_name, from_address, function(exists, is_stable, value) {
-							if(!exists) {
-								var datafeed = {};
-								datafeed[feed_name] = result.toUpperCase();
-								reliablyPostDataFeed(datafeed, from_address);
-							}
-							if(result.toUpperCase() === value) {
-								var message = removeAbbreviation(fixtures[i].homeTeamName) + ' VS ' + removeAbbreviation(fixtures[i].awayTeamName) + ' '
-									+ moment.utc(fixtures[i].date).format("DD-MMMM-YYYY") + ', '
-									+ (result === 'draw' ? 'draw' : result + ' won')
-									+ (is_stable
-										? "\n\nThe data is already in the database, you can unlock your smart contract now."
-										: "\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
-								device.sendMessageToDevice(from_address, 'text', message)
-							}else{
-								notifications.notifyAdmin('Values are not equal', JSON.stringify({from_address: from_address, datafeed: datafeed}));
-								device.sendMessageToDevice(from_address, 'text', "An error has occurred. Please try again later.")
-							}
-						});
-						return;
+			fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, from_address, function(feed_name, dataHomeTamName, dataAwayTeamName, result, date) {
+				readExistingData(feed_name, from_address, function(exists, is_stable, value) {
+					if(!exists) {
+						var datafeed = {};
+						datafeed[feed_name] = result.toUpperCase();
+						reliablyPostDataFeed(datafeed, from_address);
 					}
-				}
-				return device.sendMessageToDevice(from_address, 'text', 'Not found');
+					if(result.toUpperCase() === value) {
+						var message = removeAbbreviation(dataAwayTeamName) + ' VS ' + removeAbbreviation(dataAwayTeamName) + ' '
+							+ moment.utc(date).format("DD-MMMM-YYYY") + ', '
+							+ (result === 'draw' ? 'draw' : result + ' won')
+							+ (is_stable
+								? "\n\nThe data is already in the database, you can unlock your smart contract now."
+								: "\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
+						device.sendMessageToDevice(from_address, 'text', message)
+					}else{
+						notifications.notifyAdmin('Values are not equal', JSON.stringify({from_address: from_address, datafeed: datafeed}));
+						device.sendMessageToDevice(from_address, 'text', "An error has occurred. Please try again later.")
+					}
+				});
 			});
 		}else{
 			return device.sendMessageToDevice(from_address, 'text', getInstruction());
