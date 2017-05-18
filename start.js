@@ -232,8 +232,8 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 	});
 }
 
-function getResponseText(dataHomeTeamName, dataAwayTeamName, date, result, is_stable) {
-	return removeAbbreviation(dataHomeTeamName) + ' VS ' + removeAbbreviation(dataAwayTeamName) + ' '
+function getResponseText(homeTeamName, awayTeamName, date, result, is_stable) {
+	return removeAbbreviation(homeTeamName) + ' VS ' + removeAbbreviation(awayTeamName) + ' '
 		+ moment.utc(date).format("DD-MMMM-YYYY") + ', '
 		+ (result === 'draw' ? 'draw' : result + ' won')
 		+ (is_stable
