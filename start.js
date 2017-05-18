@@ -224,7 +224,7 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 					result = removeAbbreviations(fixtures[i].awayTeamName);
 				}
 
-				var feed_name = fixtureHomeTeamName + '_' + fixtureAwayTeamName + '_' + moment.utc(fixtures[i].date).format("DD-MM-YYYY");
+				var feed_name = fixtureHomeTeamName + '_' + fixtureAwayTeamName + '_' + moment.utc(fixtures[i].date).format("YYYY-MM-DD");
 				return callback(null, feed_name, fixtures[i].homeTeamName, fixtures[i].awayTeamName, result, fixtures[i].date, body);
 			}
 		}
