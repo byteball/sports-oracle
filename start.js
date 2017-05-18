@@ -272,7 +272,7 @@ eventBus.on('text', function(from_address, text){
 							feed_name: feed_name,
 							body: body
 						}));
-						device.sendMessageToDevice(from_address, 'text', "An error has occurred. Please try again later.")
+						device.sendMessageToDevice(from_address, 'text', "Data inconsistency found, our admin was notified and will look into the issue")
 					}
 				});
 
