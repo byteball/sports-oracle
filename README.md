@@ -1,7 +1,7 @@
-# Flight delays oracle
+# Sports oracle
 
-This oracle monitors flight delays and posts the data into Byteball as a data feed.  The data is sourced from [FlightStats](https://developer.flightstats.com/api-docs/flightstatus/v2/flightstatusresponse).
+This oracle retrieves results of football matches and posts them into Byteball as a data feed.  The data is sourced from [football-data.org](http://api.football-data.org/index).
 
-Data posted by this oracle is used in flight delay insurance contracts, the contract can be unlocked by the insured if the flight arrived more than X minutes late, or by the other party otherwise. See https://medium.com/byteball/making-p2p-great-again-episode-iv-p2p-insurance-cbbd1e59d527.
+Data posted by this oracle is used in betting contracts, the contract can be unlocked by the winning party. See https://medium.com/byteball/making-p2p-great-again-episode-iii-prediction-markets-f40d49c0abab.
 
-To unlock a contract, user first opens a chat with this oracle (the link is available at [byteball.org](https://byteball.org/)), types his flight number and the date.  The oracle fetches data from FlightStats and posts the data feed.  After the data feed unit is confirmed, the user can unlock the contract.
+To unlock a contract, user opens a chat with this oracle (the link is available at [byteball.org](https://byteball.org/)) and types the names of the teams.  The oracle fetches data from football-data.org and posts the data feed.  After the data feed unit is confirmed, the backer can unlock the contract if he correctly predicted the outcome of the game.  Otherwise, the layer can unlock the contract after the contract expires.
