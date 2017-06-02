@@ -207,8 +207,14 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 			return callback(errorText);
 		}
 		console.log('response:\n'+body);
-		var jsonResult = JSON.parse(body);
-		var fixtures = jsonResult.fixtures;
+		try{
+			var jsonResult = JSON.parse(body);
+			var fixtures = jsonResult.fixtures;
+		}
+		catch(e){
+			notifications.notifyAdminAboutPostingProblem('error parsing football-data response: '+e.toString()+", response: "+body);
+			return callback("Failed to parse data provider's response, try again later.");
+		}
 		var result = '';
 
 		for(var i = jsonResult.count - 1; i >= 0; i--) {
@@ -228,7 +234,7 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 				return callback(null, feed_name, fixtures[i].homeTeamName, fixtures[i].awayTeamName, result, fixtures[i].date, body);
 			}
 		}
-		return callback('Not found');
+		return callback('Not found.  Remember, only the games within last 7 days are checked.');
 	});
 }
 
