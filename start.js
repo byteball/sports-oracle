@@ -241,7 +241,11 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 		}
 	}, function(error, response, body) {
 		if (error || response.statusCode !== 200){
-			if (error){var errorText = "Error from data provider: " + error.text + ", status=" + error.response.statusCode;} else {var errorText = "No response from data provider";}		
+			if (error){
+					var errorText = "Error from data provider: " + error.text + ", status=" + error.response.statusCode;} 
+				else {
+					var errorText = "No response from data provider";
+				}		
 			notifications.notifyAdminAboutPostingProblem(errorText);
 			return callback(errorText);
 		}
@@ -292,11 +296,11 @@ eventBus.on('text', function(from_address, text){
 	let ucText = text.toUpperCase();
 	
 	if (ucText==="COMING"){fetchComingFixturesFromFootballDataOrg(function(error, result) {
-	if (error)
-	return device.sendMessageToDevice(from_address, 'text', error);	
-	device.sendMessageToDevice(from_address, 'text', result);
-	});
-	return;	
+		if (error)
+		return device.sendMessageToDevice(from_address, 'text', error);	
+		device.sendMessageToDevice(from_address, 'text', result);
+		});
+		return;	
 	}
 	
 	if(ucText.indexOf('/') !== -1 || ucText.indexOf(' VS ') !== -1 || ucText.indexOf(' VS. ') !== -1 || ucText.indexOf(' V ') !== -1 || ucText.indexOf(' V. ') !== -1 || ucText.indexOf(' - ') !== -1) {
