@@ -204,12 +204,7 @@ function fetchComingFixturesFromFootballDataOrg(callback) {
 		}
 	}, function(error, response, body) {
 		if (error || response.statusCode !== 200){
-			if (error){
-				var errorText = "Error from data provider: " + error.text + ", status=" + error.response.statusCode;
-			}
-			else {
-				var errorText = "No response from data provider";
-			}		
+			var errorText = error ? ("Error from data provider: " + error.text + ", status=" + error.response.statusCode) : "No response from data provider";
 			notifications.notifyAdminAboutPostingProblem(errorText);
 			return callback(errorText);
 		}
@@ -246,12 +241,7 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 		}
 	}, function(error, response, body) {
 		if (error || response.statusCode !== 200){
-			if (error){
-				var errorText = "Error from data provider: " + error.text + ", status=" + error.response.statusCode;
-			} 
-			else {
-				var errorText = "No response from data provider";
-			}		
+			var errorText = error ? ("Error from data provider: " + error.text + ", status=" + error.response.statusCode) : "No response from data provider";
 			notifications.notifyAdminAboutPostingProblem(errorText);
 			return callback(errorText);
 		}
