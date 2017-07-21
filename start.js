@@ -204,7 +204,12 @@ function fetchComingFixturesFromFootballDataOrg(callback) {
 		}
 	}, function(error, response, body) {
 		if (error || response.statusCode !== 200){
-			if (error){var errorText = "Error from data provider: " + error.text + ", status=" + error.response.statusCode;} else {var errorText = "No response from data provider";}		
+			if (error){
+				var errorText = "Error from data provider: " + error.text + ", status=" + error.response.statusCode;
+			}
+			else {
+				var errorText = "No response from data provider";
+			}		
 			notifications.notifyAdminAboutPostingProblem(errorText);
 			return callback(errorText);
 		}
@@ -225,7 +230,7 @@ function fetchComingFixturesFromFootballDataOrg(callback) {
 			var fixtureHomeTeamName = removeAbbreviations(fixtures[i].homeTeamName).replace(/\s/g,'').toUpperCase();
 			var fixtureAwayTeamName = removeAbbreviations(fixtures[i].awayTeamName).replace(/\s/g,'').toUpperCase();
 			result+=fixtureHomeTeamName + '_' + fixtureAwayTeamName + '_' + moment.utc(fixtures[i].date).format("YYYY-MM-DD")+' ';
-			}
+		}
 		
 		return callback(null,result);
 	});
@@ -242,10 +247,11 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 	}, function(error, response, body) {
 		if (error || response.statusCode !== 200){
 			if (error){
-					var errorText = "Error from data provider: " + error.text + ", status=" + error.response.statusCode;} 
-				else {
-					var errorText = "No response from data provider";
-				}		
+				var errorText = "Error from data provider: " + error.text + ", status=" + error.response.statusCode;
+			} 
+			else {
+				var errorText = "No response from data provider";
+			}		
 			notifications.notifyAdminAboutPostingProblem(errorText);
 			return callback(errorText);
 		}
@@ -295,10 +301,11 @@ eventBus.on('text', function(from_address, text){
 	text = text.trim();
 	let ucText = text.toUpperCase();
 	
-	if (ucText==="COMING"){fetchComingFixturesFromFootballDataOrg(function(error, result) {
-		if (error)
-		return device.sendMessageToDevice(from_address, 'text', error);	
-		device.sendMessageToDevice(from_address, 'text', result);
+	if (ucText === "COMING"){
+		fetchComingFixturesFromFootballDataOrg(function(error, result) {
+			if (error)
+				return device.sendMessageToDevice(from_address, 'text', error);	
+			device.sendMessageToDevice(from_address, 'text', result);
 		});
 		return;	
 	}
