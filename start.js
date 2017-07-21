@@ -182,7 +182,7 @@ function readExistingData(feed_name, device_address, handleResult){
 }
 
 function getInstruction(){
-	return "Please write the team names in the format:\n team1 vs team2 \nExample: Southampton vs Manchester United.\n Or write [coming](command:coming) to list codes for next fixtures.";
+	return "Please write the team names in the format:\n team1 vs team2 \nExample: Southampton vs Manchester United.\n\nOr write [coming](command:coming) to list the codes for the upcoming fixtures.";
 }
 
 eventBus.on('paired', function(from_address){
@@ -217,17 +217,19 @@ function fetchComingFixturesFromFootballDataOrg(callback) {
 			notifications.notifyAdminAboutPostingProblem('error parsing football-data response: '+e.toString()+", response: "+body);
 			return callback("Failed to parse data provider's response, try again later.");
 		}
-		var result = 'Next fixtures coming:\n';
 
-		if (jsonResult.count==0){return callback('No fixtures planned for next 7 days')};
+		if (jsonResult.count==0)
+			return callback('No fixtures planned for next 7 days');
 		
-		for(var i = 0; i < jsonResult.count; i++) {
-			var fixtureHomeTeamName = removeAbbreviations(fixtures[i].homeTeamName).replace(/\s/g,'').toUpperCase();
-			var fixtureAwayTeamName = removeAbbreviations(fixtures[i].awayTeamName).replace(/\s/g,'').toUpperCase();
-			result+=fixtureHomeTeamName + '_' + fixtureAwayTeamName + '_' + moment.utc(fixtures[i].date).format("YYYY-MM-DD")+' ';
-		}
+		var arrGames = fixtures.map(fixture => {
+			let homeTeamName = removeAbbreviations(fixture.homeTeamName);
+			let awayTeamName = removeAbbreviations(fixture.awayTeamName);
+			let feedHomeTeamName = homeTeamName.replace(/\s/g,'').toUpperCase();
+			let feedAwayTeamName = awayTeamName.replace(/\s/g,'').toUpperCase();
+			return homeTeamName + ' vs. ' + awayTeamName + ': ' + feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD") + "\n";
+		});
 		
-		return callback(null,result);
+		return callback(null, 'Next fixtures coming:\n\n' + arrGames.join("\n"));
 	});
 }
 
