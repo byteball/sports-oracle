@@ -182,7 +182,7 @@ function readExistingData(feed_name, device_address, handleResult){
 }
 
 function getInstruction(){
-	return "Please write the team names in the format:\n team1 vs team2 \nExample: Southampton vs Manchester United";
+	return "Please write the team names in the format:\n team1 vs team2 \nExample: Southampton vs Manchester United.\n Or write [coming](command:coming) to list codes for next fixtures.";
 }
 
 eventBus.on('paired', function(from_address){
@@ -191,8 +191,47 @@ eventBus.on('paired', function(from_address){
 });
 
 function removeAbbreviations(text) {
-	return text.replace(/\b(FC|AFC|AS|CF|RC)\b/g, '').trim();
+	return text.replace(/\b(AC|ADO|AFC|AJ|AS|AZ|BSC|CF|EA|EC|ES|FC|FCO|FSV|GO|JC|LB|NAC|MSV|OGC|OSC|PR|RC|SC|PEC|PSV|SCO|SM|SV|TSG|US|VfB|Vfl)\b/g, '').trim();
 }
+
+
+
+function fetchComingFixturesFromFootballDataOrg(callback) {
+	request({
+		url: 'https://api.football-data.org/v1/fixtures/',
+		headers:{
+			'X-Auth-Token': conf.footballDataApiKey
+		}
+	}, function(error, response, body) {
+		if (error || response.statusCode !== 200){
+			if (error){var errorText = "Error from data provider: " + error.text + ", status=" + error.response.statusCode;} else {var errorText = "No response from data provider";}		
+			notifications.notifyAdminAboutPostingProblem(errorText);
+			return callback(errorText);
+		}
+		console.log('response:\n'+body);
+		try{
+			var jsonResult = JSON.parse(body);
+			var fixtures = jsonResult.fixtures;
+		}
+		catch(e){
+			notifications.notifyAdminAboutPostingProblem('error parsing football-data response: '+e.toString()+", response: "+body);
+			return callback("Failed to parse data provider's response, try again later.");
+		}
+		var result = 'Next fixtures coming:\n';
+
+		if (jsonResult.count==0){return callback('No fixtures planned for next 7 days')};
+		
+		for(var i = 0; i < jsonResult.count; i++) {
+			var fixtureHomeTeamName = removeAbbreviations(fixtures[i].homeTeamName).replace(/\s/g,'').toUpperCase();
+			var fixtureAwayTeamName = removeAbbreviations(fixtures[i].awayTeamName).replace(/\s/g,'').toUpperCase();
+			result+=fixtureHomeTeamName + '_' + fixtureAwayTeamName + '_' + moment.utc(fixtures[i].date).format("YYYY-MM-DD")+' ';
+			}
+		
+		return callback(null,result);
+	});
+}
+
+
 
 function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 	request({
@@ -202,7 +241,11 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 		}
 	}, function(error, response, body) {
 		if (error || response.statusCode !== 200){
-			var errorText = "Error from data provider: " + error.text + ", status=" + error.response.statusCode;
+			if (error){
+					var errorText = "Error from data provider: " + error.text + ", status=" + error.response.statusCode;} 
+				else {
+					var errorText = "No response from data provider";
+				}		
 			notifications.notifyAdminAboutPostingProblem(errorText);
 			return callback(errorText);
 		}
@@ -251,6 +294,14 @@ eventBus.on('text', function(from_address, text){
 	var device = require('byteballcore/device.js');
 	text = text.trim();
 	let ucText = text.toUpperCase();
+	
+	if (ucText==="COMING"){fetchComingFixturesFromFootballDataOrg(function(error, result) {
+		if (error)
+		return device.sendMessageToDevice(from_address, 'text', error);	
+		device.sendMessageToDevice(from_address, 'text', result);
+		});
+		return;	
+	}
 	
 	if(ucText.indexOf('/') !== -1 || ucText.indexOf(' VS ') !== -1 || ucText.indexOf(' VS. ') !== -1 || ucText.indexOf(' V ') !== -1 || ucText.indexOf(' V. ') !== -1 || ucText.indexOf(' - ') !== -1) {
 		var splitText = ucText.split(/\s-\s|\sVS\s|\sVS\.\s|\sV\s|\sV\.\s/);
