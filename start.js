@@ -191,7 +191,7 @@ eventBus.on('paired', function(from_address){
 });
 
 function removeAbbreviations(text) {
-	return text.replace(/\b(AC|ADO|AFC|AJ|AS|AZ|BSC|CF|EA|EC|ES|FC|FCO|FSV|GO|JC|LB|NAC|MSV|OGC|OSC|PR|RC|SC|PEC|PSV|SCO|SM|SV|TSG|US|VfB|Vfl)\b/g, '').trim();
+	return text.replace(/\b(AC|ADO|AFC|AJ|AS|AZ|BSC|CF|EA|EC|ES|FC|FCO|FSV|GO|JC|LB|NAC|MSV|OGC|OSC|PR|RC|SC|PEC|PSV|SCO|SM|SV|TSG|US|VfB|VfL)\b/g, '').trim();
 }
 
 
