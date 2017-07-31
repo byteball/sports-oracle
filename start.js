@@ -169,7 +169,10 @@ function readExistingData(feed_name, device_address, handleResult){
 		WHERE address=? AND feed_name=?", 
 		[my_address, feed_name],
 		function(rows){
-			if(rows.length === 0) return handleResult(false);
+			if( rows.length === 0)
+				return handleResult(false);
+			if (rows.length > 1)
+				notifications.notifyAdmin(rows.length+' entries for feed', feed_name);
 			if (!rows[0].is_stable){
 				if (!assocDeviceAddressesByFeedName[feed_name])
 					assocDeviceAddressesByFeedName[feed_name] = {addresses: [device_address], value: rows[0].value};
@@ -263,6 +266,8 @@ function fetchDataFromFootballDataOrg(homeTeamName, awayTeamName, callback) {
 			var fixtureAwayTeamName = removeAbbreviations(fixtures[i].awayTeamName).replace(/\s/g,'').toUpperCase();
 
 			if((fixtureHomeTeamName === homeTeamName && fixtureAwayTeamName === awayTeamName) || (fixtureHomeTeamName === awayTeamName && fixtureAwayTeamName  === homeTeamName)) {
+				if (fixtures[i].result.goalsHomeTeam === null || fixtures[i].result.goalsAwayTeam === null)
+					return callback("Results not known yet, try again later");
 				if (fixtures[i].result.goalsHomeTeam === fixtures[i].result.goalsAwayTeam) {
 					result = 'draw';
 				} else if (fixtures[i].result.goalsHomeTeam > fixtures[i].result.goalsAwayTeam) {
