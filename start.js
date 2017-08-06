@@ -24,9 +24,9 @@ initMySportsFeedsCom('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pu
 
 
 getCurrentChampionShipsFromfootballDataOrg(function(arrCurrentChampionShips) {
-        arrCurrentChampionShips.forEach(function(currentChampionShip) {
-                initFootballDataOrg(currentChampionShip.category, currentChampionShip.keyword, currentChampionShip.url);
-        });
+    arrCurrentChampionShips.forEach(function(currentChampionShip) {
+        initFootballDataOrg(currentChampionShip.category, currentChampionShip.keyword, currentChampionShip.url);
+    });
 });
 
 if (conf.bRunWitness)
@@ -203,6 +203,8 @@ function readExistingData(feed_name, device_address, handleResult){
 }
 
 function getInstruction(){
+	var Instructions="Please choose a championship:\n"
+	
 	return "Please write the team names in the format:\n team1 vs team2 \nExample: Southampton vs Manchester United.\n\nOr write [coming](command:coming) to list the codes for the upcoming fixtures.";
 }
 
@@ -210,6 +212,16 @@ eventBus.on('paired', function(from_address){
 	var device = require('byteballcore/device.js');
 	device.sendMessageToDevice(from_address, 'text', getInstruction());
 });
+
+eventBus.on('text', function(from_address, text) {
+    var device = require('byteballcore/device.js');
+    text = text.trim();
+    let ucText = text.toUpperCase();
+
+    return device.sendMessageToDevice(from_address, 'text', getInstruction());
+});
+
+
 
 function removeAbbreviations(text) {
 	return text.replace(/\b(AC|ADO|AFC|AJ|AS|AZ|BSC|CF|EA|EC|ES|FC|FCO|FSV|GO|JC|LB|NAC|MSV|OGC|OSC|PR|RC|SC|PEC|PSV|SCO|SM|SV|TSG|US|VfB|VfL)\b/g, '').trim();
@@ -220,96 +232,96 @@ function removeAbbreviations(text) {
 
 
 function getResponseText(homeTeamName, awayTeamName, date, result, is_stable) {
-	return removeAbbreviations(homeTeamName) + ' vs ' + removeAbbreviations(awayTeamName) + '\n'
-		+ 'on ' + moment.utc(date).format("DD MMMM YYYY") + '\n'
-		+ (result === 'draw' ? 'draw' : result + ' won')
-		+ (is_stable
-			? "\n\nThe data is already in the database, you can unlock your smart contract now."
-			: "\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
+    return removeAbbreviations(homeTeamName) + ' vs ' + removeAbbreviations(awayTeamName) + '\n' +
+        'on ' + moment.utc(date).format("DD MMMM YYYY") + '\n' +
+        (result === 'draw' ? 'draw' : result + ' won') +
+        (is_stable ?
+            "\n\nThe data is already in the database, you can unlock your smart contract now." :
+            "\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
 }
 
 
 function getCurrentChampionShipsFromfootballDataOrg(handle) {
-        var arrCompetitions = [];
-        request({
-                url: 'http://football-data.org/v1/competitions'
-        }, function(error, response, body) {
-                if (error || response.statusCode !== 200) {
-                        throw Error('couldn t get current championships from footballDataOrg');
-                }
+    var arrCompetitions = [];
+    request({
+        url: 'http://football-data.org/v1/competitions'
+    }, function(error, response, body) {
+        if (error || response.statusCode !== 200) {
+            throw Error('couldn t get current championships from footballDataOrg');
+        }
 
-                var competitions = JSON.parse(body);
-                competitions.forEach(function(competition) {
-                        arrCompetitions.push({
-                                category: 'Soccer',
-                                keyword: competition.league,
-                                url: competition._links.fixtures.href
-                        });
-                });
-                handle(arrCompetitions);
+        var competitions = JSON.parse(body);
+        competitions.forEach(function(competition) {
+            arrCompetitions.push({
+                category: 'Soccer',
+                keyword: competition.league,
+                url: competition._links.fixtures.href
+            });
         });
+        handle(arrCompetitions);
+    });
 
 }
 
 
 function initFootballDataOrg(category, keyWord, url) {
-        if (typeof calendar[category] === 'undefined') {
-                calendar[category] = {};
-        }
-        if (typeof calendar[category][keyWord] === 'undefined') {
-                calendar[category][keyWord] = {};
-        }
+    if (typeof calendar[category] === 'undefined') {
+        calendar[category] = {};
+    }
+    if (typeof calendar[category][keyWord] === 'undefined') {
+        calendar[category][keyWord] = {};
+    }
 
-        var headersRequest = {
-                'X-Auth-Token': conf.footballDataApiKey
+    var headersRequest = {
+        'X-Auth-Token': conf.footballDataApiKey
 
-        };
+    };
 
-        request({
-                        url: url,
-                        headers: headersRequest
-                }, function(error, response, body) {
-                        if (error || response.statusCode !== 200) {
-                                throw Error('couldn t get fixtures from footballDataOrg ' + url);
-                        }
+    request({
+            url: url,
+            headers: headersRequest
+        }, function(error, response, body) {
+            if (error || response.statusCode !== 200) {
+                throw Error('couldn t get fixtures from footballDataOrg ' + url);
+            }
 
-                        try {
-                                var jsonResult = JSON.parse(body);
-                                var fixtures = jsonResult.fixtures;
-                        } catch (e) {
-                                //	notifications.notifyAdminAboutPostingProblem('error parsing football-data response: '+e.toString()+", response: "+body);
-                        }
-                        if (fixtures.length == 0) {
-                                throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
-                        }
-                        var arrGames = fixtures.map(fixture => {
-                                let homeTeamName = removeAbbreviations(fixture.homeTeamName);
-                                let awayTeamName = removeAbbreviations(fixture.awayTeamName);
-                                let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
-                                let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
-                                return {
-                                        homeTeam: homeTeamName,
-                                        awayTeam: awayTeamName,
-                                        date: moment.utc(fixture.date),
-                                        urlResult: fixture._links.self.href,
-                                        feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD")
-                                }
-
-                        });
-
-                        calendar[category][keyWord].feedNames = {};
-                        arrGames.forEach(function(game) {
-                                calendar[category][keyWord].feedNames[game.feedName] = game;
-                        });
-
-                        calendar[category][keyWord].getResult = function(url) {
-
-                        };
-                        console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
-
+            try {
+                var jsonResult = JSON.parse(body);
+                var fixtures = jsonResult.fixtures;
+            } catch (e) {
+                //	notifications.notifyAdminAboutPostingProblem('error parsing football-data response: '+e.toString()+", response: "+body);
+            }
+            if (fixtures.length == 0) {
+                throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
+            }
+            var arrGames = fixtures.map(fixture => {
+                let homeTeamName = removeAbbreviations(fixture.homeTeamName);
+                let awayTeamName = removeAbbreviations(fixture.awayTeamName);
+                let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
+                let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
+                return {
+                    homeTeam: homeTeamName,
+                    awayTeam: awayTeamName,
+                    date: moment.utc(fixture.date),
+                    urlResult: fixture._links.self.href,
+                    feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD")
                 }
 
-        );
+            });
+
+            calendar[category][keyWord].feedNames = {};
+            arrGames.forEach(function(game) {
+                calendar[category][keyWord].feedNames[game.feedName] = game;
+            });
+
+            calendar[category][keyWord].getResult = function(url) {
+
+            };
+            console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
+
+        }
+
+    );
 }
 
 
@@ -317,166 +329,168 @@ function initFootballDataOrg(category, keyWord, url) {
 
 function initMySportsFeedsCom(category, keyWord, url) {
 
-        if (typeof calendar[category] === 'undefined') {
-                calendar[category] = {};
+    if (typeof calendar[category] === 'undefined') {
+        calendar[category] = {};
+    }
+    if (typeof calendar[category][keyWord] === 'undefined') {
+        calendar[category][keyWord] = {};
+    }
+
+    request({
+        url: url + "full_game_schedule.json",
+        headers: {
+            "Authorization": "Basic " + btoa(conf.MySportsFeedsUser + ":" + conf.MySportsFeedsPw)
         }
-        if (typeof calendar[category][keyWord] === 'undefined') {
-                calendar[category][keyWord] = {};
+    }, function(error, response, body) {
+        if (error || response.statusCode !== 200) {
+            throw Error('couldn t get events from MySportsFeedsCom ' + url);
         }
 
-        request({
-                url: url + "full_game_schedule.json",
-                headers: {
-                        "Authorization": "Basic " + btoa(conf.MySportsFeedsUser + ":" + conf.MySportsFeedsPw)
-                }
-        }, function(error, response, body) {
-                if (error || response.statusCode !== 200) {
-                        throw Error('couldn t get events from MySportsFeedsCom ' + url);
-                }
+        try {
+            var jsonResult = JSON.parse(body);
+            var fixtures = jsonResult.fullgameschedule.gameentry;
+        } catch (e) {
+            //	notifications.notifyAdminAboutPostingProblem('error parsing football-data response: '+e.toString()+", response: "+body);
+        }
+        if (fixtures.length == 0) {
+            throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
+        }
 
-                try {
-                        var jsonResult = JSON.parse(body);
-                        var fixtures = jsonResult.fullgameschedule.gameentry;
-                } catch (e) {
-                        //	notifications.notifyAdminAboutPostingProblem('error parsing football-data response: '+e.toString()+", response: "+body);
-                }
-                if (fixtures.length == 0) {
-                        throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
-                }
+        var arrGames = fixtures.map(fixture => {
+            let homeTeamName = fixture.homeTeam.City + " " + fixture.homeTeam.Name;
+            let awayTeamName = fixture.awayTeam.City + " " + fixture.awayTeam.Name;
+            let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
+            let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
+            let fixtureDate = moment.utc(fixture.date);
 
-                var arrGames = fixtures.map(fixture => {
-                        let homeTeamName = fixture.homeTeam.City + " " + fixture.homeTeam.Name;
-                        let awayTeamName = fixture.awayTeam.City + " " + fixture.awayTeam.Name;
-                        let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
-                        let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
-                        let fixtureDate = moment.utc(fixture.date);
-
-                        if (fixture.time.lastIndexOf('PM') > 0) {
-                                fixtureDate.add(12, 'hours');
-                        }
-                        fixture.time.replace('PM', '').replace('AM', '');
-                        fixture.time.split(':');
-                        fixtureDate.add(fixture.time[0], 'hours').add(fixture.time[1], 'minutes');
-                        fixtureDate.subtract(5, 'hours'); //EST to UTC time
-                        return {
-                                homeTeam: homeTeamName,
-                                awayTeam: awayTeamName,
-                                date: fixtureDate.utc(),
-                                urlResult: url + "game_boxscore.json?gameid=" + fixture.id,
-                                feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD")
-                        }
-
-                });
-
-                calendar[category][keyWord].feedNames = {};
-                arrGames.forEach(function(game) {
-                        if (typeof game === 'object') {
-                                calendar[category][keyWord].feedNames[game.feedName] = game;
-                        }
-
-                });
-
-                calendar[category][keyWord].getResult = function(url) {
-
-                };
-
-
-                console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
-
-
+            if (fixture.time.lastIndexOf('PM') > 0) {
+                fixtureDate.add(12, 'hours');
+            }
+            fixture.time.replace('PM', '').replace('AM', '');
+            fixture.time.split(':');
+            fixtureDate.add(fixture.time[0], 'hours').add(fixture.time[1], 'minutes');
+            fixtureDate.subtract(5, 'hours'); //EST to UTC time
+            return {
+                homeTeam: homeTeamName,
+                awayTeam: awayTeamName,
+                date: fixtureDate.utc(),
+                urlResult: url + "game_boxscore.json?gameid=" + fixture.id,
+                feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD")
+            }
         });
+
+        calendar[category][keyWord].feedNames = {};
+        arrGames.forEach(function(game) {
+            if (typeof game === 'object') {
+                calendar[category][keyWord].feedNames[game.feedName] = game;
+            }
+        });
+
+        calendar[category][keyWord].getResult = function(url) {
+
+        };
+
+        console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
+
+
+    });
 
 }
 
 
 function initUfcInfoCom(category, keyWord) {
-        if (typeof calendar[category] === 'undefined') {
-                calendar[category] = {};
-        }
-        if (typeof calendar[category][keyWord] === 'undefined') {
-                calendar[category][keyWord] = {};
-        }
+    if (typeof calendar[category] === 'undefined') {
+        calendar[category] = {};
+    }
+    if (typeof calendar[category][keyWord] === 'undefined') {
+        calendar[category][keyWord] = {};
+    }
 
-        request({
-                        url: 'http://www.ufc-info.com/upcomingEvents'
+    request({
+            url: 'http://www.ufc-info.com/upcomingEvents'
+        }, function(error, response, body) {
+            if (error || response.statusCode !== 200) {
+                throw Error('couldn t get events from UfcInfoCom ');
+            }
 
+            try {
+                var arrEvents = JSON.parse(body);
+
+            } catch (e) {
+                throw Error('couldn t get fixtures from UfcInfoCom');
+            }
+            if (arrEvents.length == 0) {
+                throw Error('events array empty, couldn t get events from UfcInfoCom');
+            }
+
+            arrEvents = arrEvents.upcomingEvents.concat(arrEvents.pastEvents);
+
+            //console.log(JSON.stringify(arrEvents) + "\n\n\n");
+            arrEvents.forEach(function(event) {
+
+                request({
+                    url: 'http://www.ufc-info.com/event/' + event.id
                 }, function(error, response, body) {
-                        if (error || response.statusCode !== 200) {
-                                throw Error('couldn t get events from UfcInfoCom ');
+
+                    if (error || response.statusCode !== 200) {
+                        throw Error('couldn t get event ' + event.id + 'from UfcInfoCom ');
+                    }
+                    try {
+                        var arrEvent = JSON.parse(body);
+
+                    } catch (e) {
+                        throw Error('couldn t get events from UfcInfoCom');
+                    }
+
+                    console.log("reading event " + event.id + "\n\n\n");
+
+                    var arrGames = arrEvent.matchups.map(matchup => {
+                        if (matchup.fighter1_last_name) {
+                            let fighter1Name = matchup.fighter1_first_name.concat(' ', matchup.fighter1_last_name);
+                            let fighter2Name = matchup.fighter2_first_name.concat(' ', matchup.fighter2_last_name);
+                            return {
+                                homeTeam: fighter1Name,
+                                awayTeam: fighter2Name,
+                                date: moment.utc(event.date),
+                                urlResult: 'http://www.ufc-info.com/event' + event.id + "/" + matchup.id,
+                                feedName: fighter1Name.replace(/\s/g, '').toUpperCase() + '_' + fighter2Name.replace(/\s/g, '').toUpperCase() + '_' + moment.utc(event.date).format("YYYY-MM-DD")
+                            }
+                        }
+                    });
+                    calendar[category][keyWord].feedNames = {};
+                    arrGames.forEach(function(game) {
+                        if (typeof game === 'object') {
+                            calendar[category][keyWord].feedNames[game.feedName] = game;
                         }
 
-                        try {
-                                var arrEvents = JSON.parse(body);
+                    });
 
-                        } catch (e) {
-                                throw Error('couldn t get fixtures from UfcInfoCom');
-                        }
-                        if (arrEvents.length == 0) {
-                                throw Error('events array empty, couldn t get events from UfcInfoCom');
-                        }
+                    calendar[category][keyWord].getResult = function(url) {
 
-                        arrEvents = arrEvents.upcomingEvents.concat(arrEvents.pastEvents);
+                    };
 
-                        //console.log(JSON.stringify(arrEvents) + "\n\n\n");
-                        arrEvents.forEach(function(event) {
-
-                                request({
-                                        url: 'http://www.ufc-info.com/event/' + event.id
-
-                                }, function(error, response, body) {
-
-                                        if (error || response.statusCode !== 200) {
-                                                throw Error('couldn t get event ' + event.id + 'from UfcInfoCom ');
-                                        }
-                                        try {
-                                                var arrEvent = JSON.parse(body);
-
-                                        } catch (e) {
-                                                throw Error('couldn t get events from UfcInfoCom');
-                                        }
-
-                                        console.log("reading event " + event.id + "\n\n\n");
-
-                                        var arrGames = arrEvent.matchups.map(matchup => {
-                                                if (matchup.fighter1_last_name) {
-                                                        let fighter1Name = matchup.fighter1_first_name.concat(' ', matchup.fighter1_last_name);
-                                                        let fighter2Name = matchup.fighter2_first_name.concat(' ', matchup.fighter2_last_name);
-                                                        return {
-                                                                homeTeam: fighter1Name,
-                                                                awayTeam: fighter2Name,
-                                                                date: moment.utc(event.date),
-                                                                urlResult: 'http://www.ufc-info.com/event' + event.id + "/" + matchup.id,
-                                                                feedName: fighter1Name.replace(/\s/g, '').toUpperCase() + '_' + fighter2Name.replace(/\s/g, '').toUpperCase() + '_' + moment.utc(event.date).format("YYYY-MM-DD")
-                                                        }
-                                                }
-                                        });
-                                        calendar[category][keyWord].feedNames = {};
-                                        arrGames.forEach(function(game) {
-                                                if (typeof game === 'object') {
-                                                        calendar[category][keyWord].feedNames[game.feedName] = game;
-                                                }
-
-                                        });
-
-                                        calendar[category][keyWord].getResult = function(url) {
-
-                                        };
-
-                                        console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
+                    console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
 
 
-                                });
-                        });
+                });
+            });
 
-                }
+        }
 
-        );
+    );
 
 
 
 }
 
+eventBus.on('text', function(from_address, text) {
+    var device = require('byteballcore/device.js');
+    text = text.trim();
+    let ucText = text.toUpperCase();
 
+
+    return device.sendMessageToDevice(from_address, 'text', getInstruction());
+});
 
 eventBus.on('my_transactions_became_stable', function(arrUnits){
 	var device = require('byteballcore/device.js');
