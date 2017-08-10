@@ -16,6 +16,7 @@ var arrPeers = [];
 
 
 
+
 //------The differents feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
 initMySportsFeedsCom('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2017-regular/');
@@ -205,55 +206,67 @@ function readExistingData(feed_name, device_address, handleResult){
 }
 
 function homeInstructions(){
-	var Instructions="Please choose a championship:\n";
-	 for (var index_0 in calendar) {
-		Instructions+='\n---'+index_0+'---\n'; 
-		  for (var index_2 in calendar[index_0]){
-			Instructions+=txtCommandButton(index_2)+' ';   
+	var instructions="Please choose a championship:\n";
+	 for (var cat in calendar) {
+		instructions+='\n---' + cat +'---\n'; 
+		  for (var keyword in calendar[cat]){
+			instructions+=txtCommandButton(keyword)+' ';   
 		  }	 
 	 }
 	
-	return Instructions;
+	return instructions;
 }
-function championshipInstructions(keyword) {
-    return "------" + keyword + "--------\n" + txtCommandButton("last") + " to list last games played\n" + txtCommandButton("coming") + " to list coming games \n" + txtCommandButton("cancel") + " to return home \n or write the name of the team you want to search";
+function championshipInstructions(championshipName) {
+    return "------" + championshipName + "--------\n" + txtCommandButton("last") + " to list last games played\n" + txtCommandButton("coming") + " to list coming games \n" + txtCommandButton("cancel") + " to return home \n or write the name of the team you want to search";
 }
 
 
 function fixturesAfterNow(championship) {
-    var txtReturn = 'Last games played: \n';
+    var txtReturn = '12 next games coming: \n';
     var bufferAfter = [];
-    for (var index_0 in championship) {
-        if (moment.utc(championship[index_0].date).isAfter(moment())) {
-            bufferAfter.push(championship[index_0].homeTeam + ' Vs. ' + championship[index_0].awayTeam + ":\n" + txtCommandButton(index_0));
+    for (var feedName in championship) {
+        if (moment.utc(championship[feedName].date).isAfter(moment())) {
+            bufferAfter.push(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + ":\n" + txtCommandButton(feedName));
         }
     }
-    txtReturn += bufferAfter.slice(0, 12).join('\n') + "\n" + championshipInstructions('');
+	if (bufferAfter.length==0) {
+	    txtReturn="No results found \n";
+        return txtReturn;
+	}
+    txtReturn += bufferAfter.slice(0, 12).join('\n') + "\n" ;
     return txtReturn;
 }
 
 function fixturesBeforeNow(championship) {
-    var txtReturn = 'Last games played: \n';
+    var txtReturn = '12 last games played: \n';
     var bufferBefore = [];
-    for (var index_0 in championship) {
-        if (moment.utc(championship[index_0].date).isBefore(moment())) {
-            bufferBefore.push(championship[index_0].homeTeam + ' Vs. ' + championship[index_0].awayTeam + ":\n" + txtCommandButton(index_0));
+    for (var feedName in championship) {
+        if (moment.utc(championship[feedName].date).isBefore(moment())) {
+            bufferBefore.push(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + ":\n" + txtCommandButton(feedName));
         }
     }
-    txtReturn += bufferBefore.slice(-12).join('\n') + "\n" + championshipInstructions('');
+	if (bufferBefore.length==0) {
+	    txtReturn="No results found  \n";
+        return txtReturn;
+	}
+    txtReturn += bufferBefore.slice(-12).join('\n') + "\n" ;
     return txtReturn;
 }
 
-function searchFixtures(championship, keyword) {
-    var txtReturn = 'Last games played: \n';
+function searchFixtures(championship, search) {
+    var txtReturn = '';
     var buffer = [];
     var now = moment();
-    for (var index_0 in championship) {
-        if (removeAccents(championship[index_0].homeTeam).toUpperCase().indexOf(removeAccents(keyword).toUpperCase()) > -1 || removeAccents(championship[index_0].awayTeam).toUpperCase().indexOf(removeAccents(keyword).toUpperCase()) > -1) {
-            buffer.push(championship[index_0].homeTeam + ' Vs. ' + championship[index_0].awayTeam + ":\n" + txtCommandButton(index_0));
+    for (var feedName in championship) {
+        if (removeAccents(championship[feedName].homeTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1 || removeAccents(championship[feedName].awayTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1) {
+            buffer.push(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + ":\n" + txtCommandButton(feedName));
         }
     }
-    txtReturn += buffer.join('\n') + "\n" + championshipInstructions('');
+	if (buffer.length==0) {
+	txtReturn="No results found  \n";
+    return txtReturn;
+	}
+    txtReturn += buffer.join('\n') + "\n";
     return txtReturn;
 }
 
@@ -268,50 +281,45 @@ eventBus.on('text', function(from_address, text) {
     text = text.trim();
     let ucText = text.toUpperCase();
 
-	if (!arrPeers[from_address]) {
+    if (!arrPeers[from_address]) {
         arrPeers[from_address] = {
-        step: "home",
-		cat: "none_yet",
-		keyword:"none_yet"
+            step: "home",
+            cat: "none_yet",
         };
-	}
-		if (text=="cancel"){
-		arrPeers[from_address].step='home';
-		}
-	
-	if (calendar[arrPeers[from_address].cat]&&arrPeers[from_address].step!='home')
-	{	
-		if (calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames[text])
-		{
-	device.sendMessageToDevice(from_address, 'text', "feed name recognized");
-	return;
-		} 
-		if (text=="last"){
-		device.sendMessageToDevice(from_address, 'text', fixturesBeforeNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames));
-		return;
-		}
-		if (text=="coming"){
-		device.sendMessageToDevice(from_address, 'text', fixturesAfterNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames));
-		return;
-		}
-		device.sendMessageToDevice(from_address, 'text', "Search for: " +text+"\n"+ searchFixtures(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames,text)) ;	
-		return;
-	}
-	
-	
-	
-	for (var index_0 in calendar) {
-	    if(calendar[index_0][text]){
-		arrPeers[from_address].step=text;
-		arrPeers[from_address].cat=index_0;
-		device.sendMessageToDevice(from_address, 'text', championshipInstructions(text));
-		return;
-		}
-		 
-	 }	 
-	
+    }
+    if (text == "cancel") {
+        arrPeers[from_address].step = 'home';
+    }
 
-	
+    if (calendar[arrPeers[from_address].cat] && arrPeers[from_address].step != 'home') {
+        if (calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames[text]) {
+            device.sendMessageToDevice(from_address, 'text', "feed name recognized");
+            return;
+        }
+        if (text == "last") {
+            device.sendMessageToDevice(from_address, 'text', fixturesBeforeNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + championshipInstructions(arrPeers[from_address].step));
+            return;
+        }
+        if (text == "coming") {
+            device.sendMessageToDevice(from_address, 'text', fixturesAfterNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + championshipInstructions(arrPeers[from_address].step));
+            return;
+        }
+        device.sendMessageToDevice(from_address, 'text', "Search for " + text + " :\n" + searchFixtures(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames, text) + championshipInstructions(arrPeers[from_address].step));
+        return;
+    }
+
+    for (var cat in calendar) {
+        if (calendar[cat][text]) {
+            arrPeers[from_address].step = text;
+            arrPeers[from_address].cat = cat;
+            device.sendMessageToDevice(from_address, 'text', championshipInstructions(text));
+            return;
+        }
+
+    }
+
+
+
     return device.sendMessageToDevice(from_address, 'text', homeInstructions());
 });
 
