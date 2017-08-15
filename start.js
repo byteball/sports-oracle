@@ -15,17 +15,15 @@ var calendar = {};
 var arrPeers = [];
 
 
-
-
 //------The differents feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
 initMySportsFeedsCom('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2017-regular/');
 initMySportsFeedsCom('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2016-2017-regular/');
 initMySportsFeedsCom('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2017-regular/');
 initMySportsFeedsCom('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2017-2018-regular/');
-//initUfcInfoCom('Mixed Martial Arts', 'UFC');
+//initUfcInfoCom('Mixed Martial Arts', 'UFC');//not working yet
 
-
+//------for soccer we fetch championship available
 getCurrentChampionShipsFromfootballDataOrg(function(arrCurrentChampionShips) {
     arrCurrentChampionShips.forEach(function(currentChampionShip) {
         initFootballDataOrg(currentChampionShip.category, currentChampionShip.keyword, currentChampionShip.url);
@@ -110,9 +108,6 @@ function createOptimalOutputs(handleOutputs){
 
 
 
-////////
-
-
 function postDataFeed(datafeed, onDone){
 	function onError(err){
 		notifications.notifyAdminAboutFailedPosting(err);
@@ -147,7 +142,7 @@ function postDataFeed(datafeed, onDone){
 	});
 }
 
-function reliablyPostDataFeed(datafeed, device_address){
+function reliablyPostDataFeed(datafeed){
 	var feed_name, feed_value;
 	for(var key in datafeed){
 		feed_name = key;
@@ -156,15 +151,7 @@ function reliablyPostDataFeed(datafeed, device_address){
 	}
 	if (!feed_name)
 		throw Error('no feed name');
-	if (device_address){
-		if (!assocDeviceAddressesByFeedName[feed_name])
-			assocDeviceAddressesByFeedName[feed_name] = {addresses: [device_address], value: feed_value};
-		else
-			assocDeviceAddressesByFeedName[feed_name].addresses.push(device_address);
-	}
-	if (assocQueuedDataFeeds[feed_name]) // already queued
-		return console.log(feed_name+" already queued");
-	assocQueuedDataFeeds[feed_name] = datafeed;
+
 	var onDataFeedResult = function(err){
 		if (err){
 			console.log('will retry posting the data feed later');
@@ -172,18 +159,13 @@ function reliablyPostDataFeed(datafeed, device_address){
 				postDataFeed(datafeed, onDataFeedResult);
 			}, RETRY_TIMEOUT + Math.round(Math.random()*3000));
 		}
-		else
-			delete assocQueuedDataFeeds[feed_name];
+
 	};
 	postDataFeed(datafeed, onDataFeedResult);
 }
 
 
-function readExistingData(feed_name, device_address, handleResult){
-	if (assocQueuedDataFeeds[feed_name]){
-		assocDeviceAddressesByFeedName[feed_name].addresses.push(device_address);
-		return handleResult(true, 0, assocDeviceAddressesByFeedName[feed_name].value);
-	}
+function readExistingData(feed_name, handleResult){
 	db.query(
 		"SELECT feed_name, is_stable, value \n\
 		FROM data_feeds CROSS JOIN unit_authors USING(unit) CROSS JOIN units USING(unit) \n\
@@ -194,12 +176,6 @@ function readExistingData(feed_name, device_address, handleResult){
 				return handleResult(false);
 			if (rows.length > 1)
 				notifications.notifyAdmin(rows.length+' entries for feed', feed_name);
-			if (!rows[0].is_stable){
-				if (!assocDeviceAddressesByFeedName[feed_name])
-					assocDeviceAddressesByFeedName[feed_name] = {addresses: [device_address], value: rows[0].value};
-				else
-					assocDeviceAddressesByFeedName[feed_name].addresses.push(device_address);
-			}
 			return handleResult(true, rows[0].is_stable, rows[0].value);
 		}
 	);
@@ -216,8 +192,9 @@ function homeInstructions(){
 	
 	return instructions;
 }
+
 function championshipInstructions(championshipName) {
-    return "------" + championshipName + "--------\n" + txtCommandButton("last") + " to list last games played\n" + txtCommandButton("coming") + " to list coming games \n" + txtCommandButton("cancel") + " to return home \n or write the name of the team you want to search";
+    return "-----------------------------  " + championshipName + "  -----------------------------\n Actions: \n" + " - List " + txtCommandButton("last") + " games played \n - List " + txtCommandButton("coming") + " games \n" + " - Return " + txtCommandButton("home") + "\n - Or write the team you want to search like 'mia' for Miami";
 }
 
 
@@ -225,15 +202,15 @@ function fixturesAfterNow(championship) {
     var txtReturn = '12 next games coming: \n';
     var bufferAfter = [];
     for (var feedName in championship) {
-        if (moment.utc(championship[feedName].date).isAfter(moment())) {
-            bufferAfter.push(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + ":\n" + txtCommandButton(feedName));
+        if (championship[feedName].date.isAfter(moment())) {
+            bufferAfter.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
         }
     }
-	if (bufferAfter.length==0) {
-	    txtReturn="No results found \n";
+    if (bufferAfter.length == 0) {
+        txtReturn = "No results found \n";
         return txtReturn;
-	}
-    txtReturn += bufferAfter.slice(0, 12).join('\n') + "\n" ;
+    }
+    txtReturn += bufferAfter.slice(0, 12).join('\n') + "\n";
     return txtReturn;
 }
 
@@ -241,12 +218,12 @@ function fixturesBeforeNow(championship) {
     var txtReturn = '12 last games played: \n';
     var bufferBefore = [];
     for (var feedName in championship) {
-        if (moment.utc(championship[feedName].date).isBefore(moment())) {
-            bufferBefore.push(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + ":\n" + txtCommandButton(feedName));
+        if (championship[feedName].date.isBefore(moment())) {
+            bufferBefore.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"),feedName)+"\n");
         }
     }
-	if (bufferBefore.length==0) {
-	    txtReturn="No results found  \n";
+	if (bufferBefore.length == 0 ) {
+	    txtReturn = "No results found  \n";
         return txtReturn;
 	}
     txtReturn += bufferBefore.slice(-12).join('\n') + "\n" ;
@@ -256,19 +233,121 @@ function fixturesBeforeNow(championship) {
 function searchFixtures(championship, search) {
     var txtReturn = '';
     var buffer = [];
-    var now = moment();
     for (var feedName in championship) {
         if (removeAccents(championship[feedName].homeTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1 || removeAccents(championship[feedName].awayTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1) {
-            buffer.push(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + ":\n" + txtCommandButton(feedName));
+            buffer.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"),feedName)+"\n");
         }
     }
-	if (buffer.length==0) {
-	txtReturn="No results found  \n";
+	if (buffer.length == 0) {
+	txtReturn = "No results found  \n";
     return txtReturn;
 	}
     txtReturn += buffer.join('\n') + "\n";
     return txtReturn;
 }
+
+
+function retrieveAndPostResult(url, feedName, getResult, handle) {
+
+    request({
+        url: url,
+        headers: getResult.headers
+    }, function(error, response, body) {
+        if (error || response.statusCode !== 200) {
+            handle("Error, can't get info from data provider");
+            return;
+        }
+        try {
+            var parsedBody = JSON.parse(body);
+
+        } catch (e) {
+            notifications.notifyAdmin("Result for " + feedName + " can't be parsed", e + "\n" + body );
+            return handle('Couldn t parse result, admin is notified');
+        }
+
+        getResult.process(parsedBody, function(err, result) {
+            if (err) {
+                notifications.notifyAdmin("Result for " + feedName + " should be available but it is not", "URL concerned:" + url + "error:" + err);
+                return handle("Result not available yet, you will be notified when available");
+            }
+            if (result.feedName !== feedName) {
+                notifications.notifyAdmin('Inconsistency for ' + feedName, 'Result feedname:' + result.feedName + ' Response from ' + url + ' : ' + body);
+                return handle("Inconsistent result, admin is notified");
+            }
+
+            var datafeed = {};
+            datafeed[feedName] = result.winnerCode;
+            reliablyPostDataFeed(datafeed);
+            handle(result.homeTeam + " vs " + result.awayTeam + " on " + result.date.format("YYYY-MM-DD") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n The result is being posted in database, you will be notified when you can unlock your contract");
+
+        });
+    });
+
+
+}
+
+function feedStatus(peer, fixture, from_address, getResult, handle) {
+
+    if (fixture.date.isBefore(moment().subtract(6, 'hours'))) {
+        readExistingData(fixture.feedName, function(exists, is_stable, value) {
+
+            if (exists) {
+                if (!is_stable) {
+                    db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,url_result,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+                }
+                handle(getResponseForFeedAlreadyInDAG(fixture.homeTeam, fixture.awayTeam, fixture.date.format("YYYY-MM-DD HH:mm:ss"), value, is_stable));
+            } else {
+                db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,url_result,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+                retrieveAndPostResult(fixture.urlResult, fixture.feedName, getResult, function(txt) {
+                    handle(txt);
+                });
+            }
+        });
+    } else {
+        db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,url_result,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+        handle("The code for the sport oracle is: \n" + fixture.feedName + "\n Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] + "\n Result is available 6 hours after the fixture, you will be notified when you can unlock the contract.");
+    }
+}
+
+
+function notifyForDatafeedPosted(feed_name) {
+    db.query(
+        "SELECT * FROM asked_fixtures WHERE feed_name=?  GROUP BY device_address", [feed_name],
+        function(rows) {
+            rows.forEach(
+                function(row) {
+                    var device = require('byteballcore/device.js');
+                    device.sendMessageToDevice(row.device_address, 'text', "Sport oracle posted result for " + row.feed_name);
+                }
+            )
+
+            db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feed_name]);
+        });
+}
+
+
+setInterval(function() {
+
+        db.query(
+            "SELECT * FROM asked_fixtures WHERE fixture_date < datetime('now', '-6 hours') GROUP BY feed_name", [],
+            function(rows) {
+                rows.forEach(
+                    function(row) {
+                        if (calendar[row.cat]&&calendar[row.cat][row.championship]) {
+                            retrieveAndPostResult(row.url_result, row.feed_name, calendar[row.cat][row.championship].getResult, function() {
+                            });
+                        } else {
+                            notifications.notifyAdmin("Championship " + feedName + " not in calendar anymore, can't get result", "");
+                        }
+                    }
+                )
+
+            });
+
+    },
+    1000 * 360);
+
+
 
 
 eventBus.on('paired', function(from_address){
@@ -287,38 +366,36 @@ eventBus.on('text', function(from_address, text) {
             cat: "none_yet",
         };
     }
-    if (text == "cancel") {
-        arrPeers[from_address].step = 'home';
-    }
 
-    if (calendar[arrPeers[from_address].cat] && arrPeers[from_address].step != 'home') {
-        if (calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames[text]) {
-            device.sendMessageToDevice(from_address, 'text', "feed name recognized");
-            return;
-        }
-        if (text == "last") {
-            device.sendMessageToDevice(from_address, 'text', fixturesBeforeNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + championshipInstructions(arrPeers[from_address].step));
-            return;
-        }
-        if (text == "coming") {
-            device.sendMessageToDevice(from_address, 'text', fixturesAfterNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + championshipInstructions(arrPeers[from_address].step));
-            return;
-        }
-        device.sendMessageToDevice(from_address, 'text', "Search for " + text + " :\n" + searchFixtures(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames, text) + championshipInstructions(arrPeers[from_address].step));
-        return;
+    if (text == "home") {
+        arrPeers[from_address].step = 'home';
     }
 
     for (var cat in calendar) {
         if (calendar[cat][text]) {
             arrPeers[from_address].step = text;
             arrPeers[from_address].cat = cat;
-            device.sendMessageToDevice(from_address, 'text', championshipInstructions(text));
-            return;
+            return device.sendMessageToDevice(from_address, 'text', championshipInstructions(text));
         }
-
     }
 
+    if (calendar[arrPeers[from_address].cat] && arrPeers[from_address].step != 'home') {
+        if (calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames[text]) {
+            feedStatus(arrPeers[from_address], calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames[text], from_address, calendar[arrPeers[from_address].cat][arrPeers[from_address].step].getResult, function(response) {
+                device.sendMessageToDevice(from_address, 'text', response);
+            });
+            return;
+        }
+        if (text == "last") {
+            return device.sendMessageToDevice(from_address, 'text', fixturesBeforeNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + championshipInstructions(arrPeers[from_address].step));
+        }
+        if (text == "coming") {
+            return device.sendMessageToDevice(from_address, 'text', fixturesAfterNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + championshipInstructions(arrPeers[from_address].step));
 
+        }
+        return device.sendMessageToDevice(from_address, 'text', "Search for " + text + " :\n" + searchFixtures(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames, text) + championshipInstructions(arrPeers[from_address].step));
+
+    }
 
     return device.sendMessageToDevice(from_address, 'text', homeInstructions());
 });
@@ -351,8 +428,8 @@ function removeAccents(str) {
 
 
 
-function getResponseText(homeTeamName, awayTeamName, date, result, is_stable) {
-    return removeAbbreviations(homeTeamName) + ' vs ' + removeAbbreviations(awayTeamName) + '\n' +
+function getResponseForFeedAlreadyInDAG(homeTeamName, awayTeamName, date, result, is_stable) {
+   return homeTeamName + ' vs ' + awayTeamName + '\n' +
         'on ' + moment.utc(date).format("DD MMMM YYYY") + '\n' +
         (result === 'draw' ? 'draw' : result + ' won') +
         (is_stable ?
@@ -364,7 +441,8 @@ function getResponseText(homeTeamName, awayTeamName, date, result, is_stable) {
 function getCurrentChampionShipsFromfootballDataOrg(handle) {
     var arrCompetitions = [];
     request({
-        url: 'http://football-data.org/v1/competitions'
+        url: 'http://football-data.org/v1/competitions',
+		headers: {'X-Auth-Token': conf.footballDataApiKey}
     }, function(error, response, body) {
         if (error || response.statusCode !== 200) {
             throw Error('couldn t get current championships from footballDataOrg');
@@ -392,14 +470,10 @@ function initFootballDataOrg(category, keyWord, url) {
         calendar[category][keyWord] = {};
     }
 
-    var headersRequest = {
-        'X-Auth-Token': conf.footballDataApiKey
-
-    };
-
+	var headers = {'X-Auth-Token': conf.footballDataApiKey};
     request({
             url: url,
-            headers: headersRequest
+            headers: headers
         }, function(error, response, body) {
             if (error || response.statusCode !== 200) {
                 throw Error('couldn t get fixtures from footballDataOrg ' + url);
@@ -414,30 +488,57 @@ function initFootballDataOrg(category, keyWord, url) {
             if (fixtures.length == 0) {
                 throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
             }
-            var arrGames = fixtures.map(fixture => {
-                let homeTeamName = removeAbbreviations(fixture.homeTeamName);
+			
+			function  encodeFixture(fixture){
+			    let homeTeamName = removeAbbreviations(fixture.homeTeamName);
                 let awayTeamName = removeAbbreviations(fixture.awayTeamName);
                 let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
-                let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
-                return {
-                    homeTeam: homeTeamName,
-                    awayTeam: awayTeamName,
-                    date: moment.utc(fixture.date),
-                    urlResult: fixture._links.self.href,
-                    feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD")
+                let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();	
+				  return {
+                homeTeam: homeTeamName,
+                awayTeam: awayTeamName,
+                feedHomeTeamName: feedHomeTeamName,
+                feedAwayTeamName: feedAwayTeamName,
+                feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
+				urlResult: fixture._links.self.href,
+				date: moment.utc(fixture.date),
+				localDate: moment.utc(fixture.date) //local date is not given by FootballDataOrg, a shift in date can happen for competitions in america
                 }
-
+			}
+			
+            var arrGames = fixtures.map(fixture => {
+				 return encodeFixture(fixture);
             });
 
             calendar[category][keyWord].feedNames = {};
             arrGames.forEach(function(game) {
                 calendar[category][keyWord].feedNames[game.feedName] = game;
             });
+	
+			calendar[category][keyWord].getResult = {};
+			calendar[category][keyWord].getResult.headers = headers;
+            calendar[category][keyWord].getResult.process = function (response,handle) {
+                if (response.fixture.result&&response.fixture.result.goalsAwayTeam!=null) {
+                    let fixture = encodeFixture(response.fixture);
 
-            calendar[category][keyWord].getResult = function(url) {
-
+                    if (Number(response.fixture.result.goalsAwayTeam) > Number(response.fixture.result.goalsHomeTeam)) {
+						fixture.winner=fixture.homeTeam;
+                        fixture.winnerCode = fixture.feedAwayTeamName;
+                    }
+                    if (Number(response.fixture.result.goalsAwayTeam) < Number(response.fixture.result.goalsHomeTeam)) {
+						fixture.winner=fixture.homeTeam;
+                        fixture.winnerCode = fixture.feedHomeTeamName;
+                    }
+                    if (Number(response.fixture.result.goalsAwayTeam) == Number(response.fixture.result.goalsHomeTeam)) {
+						fixture.winner='draw';	
+                        fixture.winnerCode = 'draw';					
+                    }
+                    handle(null, fixture);
+                } else {
+                    handle('No result in response');
+                }
             };
-            console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
+				console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
 
         }
 
@@ -455,28 +556,23 @@ function initMySportsFeedsCom(category, keyWord, url) {
     if (typeof calendar[category][keyWord] === 'undefined') {
         calendar[category][keyWord] = {};
     }
-
+    var headers = { "Authorization": "Basic " + btoa(conf.MySportsFeedsUser + ":" + conf.MySportsFeedsPw)};
     request({
         url: url + "full_game_schedule.json",
-        headers: {
-            "Authorization": "Basic " + btoa(conf.MySportsFeedsUser + ":" + conf.MySportsFeedsPw)
-        }
+        headers: headers
     }, function(error, response, body) {
         if (error || response.statusCode !== 200) {
             throw Error('couldn t get events from MySportsFeedsCom ' + url);
         }
 
-        try {
             var jsonResult = JSON.parse(body);
             var fixtures = jsonResult.fullgameschedule.gameentry;
-        } catch (e) {
-            //	notifications.notifyAdminAboutPostingProblem('error parsing football-data response: '+e.toString()+", response: "+body);
-        }
+
         if (fixtures.length == 0) {
             throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
         }
 
-        var arrGames = fixtures.map(fixture => {
+        function encodeFixture(fixture) {
             let homeTeamName = fixture.homeTeam.City + " " + fixture.homeTeam.Name;
             let awayTeamName = fixture.awayTeam.City + " " + fixture.awayTeam.Name;
             let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
@@ -489,14 +585,23 @@ function initMySportsFeedsCom(category, keyWord, url) {
             fixture.time.replace('PM', '').replace('AM', '');
             fixture.time.split(':');
             fixtureDate.add(fixture.time[0], 'hours').add(fixture.time[1], 'minutes');
-            fixtureDate.subtract(5, 'hours'); //EST to UTC time
+            fixtureDate.add(5, 'hours'); //EST to UTC time
+	 
             return {
                 homeTeam: homeTeamName,
                 awayTeam: awayTeamName,
-                date: fixtureDate.utc(),
-                urlResult: url + "game_boxscore.json?gameid=" + fixture.id,
-                feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD")
+                feedHomeTeamName: feedHomeTeamName,
+                feedAwayTeamName: feedAwayTeamName,
+                feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
+				urlResult: url + "game_boxscore.json?gameid=" + fixture.id,
+				date: fixtureDate.utc(),
+				localDate:moment.utc(fixture.date)
             }
+        }
+
+        var arrGames = fixtures.map(fixture => {
+            return encodeFixture(fixture);
+
         });
 
         calendar[category][keyWord].feedNames = {};
@@ -505,19 +610,89 @@ function initMySportsFeedsCom(category, keyWord, url) {
                 calendar[category][keyWord].feedNames[game.feedName] = game;
             }
         });
+		//there are several different getResult function depending of sport
+		
+		calendar[category][keyWord].getResult={};
+		calendar[category][keyWord].getResult.headers = headers;
+        if (url.indexOf('mlb') > -1) {
+            calendar[category][keyWord].getResult.process = function (response,handle) {
+                if (response.gameboxscore.inningSummary.inningTotals) {
+                    let fixture = encodeFixture(response.gameboxscore.game);
 
-        calendar[category][keyWord].getResult = function(url) {
+                    if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) > Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
+						fixture.winner=fixture.awayTeam;
+                        fixture.winnerCode = fixture.feedAwayTeamName;
+                    }
+                    if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) < Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
+						fixture.winner=fixture.homeTeam;
+                        fixture.winnerCode = fixture.feedHomeTeamName;
+                    }
+                    if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) == Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
+						fixture.winner='draw';	
+                        fixture.winnerCode = 'draw';					
+                    }
+                    handle(null, fixture);
+                } else {
+                    handle('No inningTotals in response');
+                }
+            };
+        }
+		
+		if (url.indexOf('nba') > -1 || url.indexOf('nfl') > -1) {
+            calendar[category][keyWord].getResult.process = function (response,handle) {
+                if (response.gameboxscore.quarterSummary.quarterTotals) {
+                    let fixture = encodeFixture(response.gameboxscore.game);
 
-        };
+                    if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) > Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
+						fixture.winner=fixture.awayTeam;
+                        fixture.winnerCode = fixture.feedAwayTeamName;
+                    }
+                    if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) < Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
+						fixture.winner=fixture.homeTeam;
+                        fixture.winnerCode = fixture.feedHomeTeamName;
+                    }
+                    if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) == Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
+						fixture.winner='draw';	
+                        fixture.winnerCode = 'draw';					
+                    }
+                    handle(null, fixture);
+                } else {
+                    handle('No quarterTotals in response');
+                }
+            };
+        }
+		
+	    if (url.indexOf('nhl') > -1) {
+            calendar[category][keyWord].getResult.process = function (response,handle) {
+                if (response.gameboxscore.periodSummary.periodTotals) {
+                    let fixture = encodeFixture(response.gameboxscore.game);
 
+                    if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) > Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
+						fixture.winner=fixture.awayTeam;
+                        fixture.winnerCode = fixture.feedAwayTeamName;
+                    }
+                    if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) < Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
+						fixture.winner=fixture.homeTeam;
+                        fixture.winnerCode = fixture.feedHomeTeamName;
+                    }
+                    if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) == Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
+						fixture.winner='draw';	
+                        fixture.winnerCode = 'draw';					
+                    }
+                    handle(null, fixture);
+                } else {
+                    handle('No periodTotals in response');
+                }
+            };
+        }
+			
+		
         console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
-
-
     });
 
 }
 
-
+/* not finished
 function initUfcInfoCom(category, keyWord) {
     if (typeof calendar[category] === 'undefined') {
         calendar[category] = {};
@@ -572,6 +747,7 @@ function initUfcInfoCom(category, keyWord) {
                                 homeTeam: fighter1Name,
                                 awayTeam: fighter2Name,
                                 date: moment.utc(event.date),
+								localDate: moment.utc(event.date),
                                 urlResult: 'http://www.ufc-info.com/event' + event.id + "/" + matchup.id,
                                 feedName: fighter1Name.replace(/\s/g, '').toUpperCase() + '_' + fighter2Name.replace(/\s/g, '').toUpperCase() + '_' + moment.utc(event.date).format("YYYY-MM-DD")
                             }
@@ -584,14 +760,11 @@ function initUfcInfoCom(category, keyWord) {
                         }
 
                     });
-
                     calendar[category][keyWord].getResult = function(url) {
 
                     };
 
                     console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
-
-
                 });
             });
 
@@ -599,25 +772,17 @@ function initUfcInfoCom(category, keyWord) {
 
     );
 
-
-
 }
-
+*/
 
 eventBus.on('my_transactions_became_stable', function(arrUnits){
-	var device = require('byteballcore/device.js');
+	
 	db.query("SELECT feed_name FROM data_feeds WHERE unit IN(?)", [arrUnits], function(rows){
 		rows.forEach(row => {
-			let feed_name = row.feed_name;
-			if (!assocDeviceAddressesByFeedName[feed_name])
-				return;
-			let arrDeviceAddresses = _.uniq(assocDeviceAddressesByFeedName[feed_name].addresses);
-			arrDeviceAddresses.forEach(device_address => {
-				device.sendMessageToDevice(device_address, 'text', "The data about the sports event "+feed_name+" is now in the database, you can unlock your contract.");
+			    notifyForDatafeedPosted(row.feed_name);
 			});
-			delete assocDeviceAddressesByFeedName[feed_name];
 		});
-	});
+	
 });
 
 
@@ -632,6 +797,11 @@ eventBus.on('headless_wallet_ready', function(){
 		console.log("please specify footballDataApiKey in your "+desktopApp.getAppDataDir()+'/conf.json');
 		process.exit(1);
 	}
+	if (!conf.MySportsFeedsUser||!conf.MySportsFeedsPw){
+		console.log("please specify MySportsFeeds credentials in your "+desktopApp.getAppDataDir()+'/conf.json');
+		process.exit(1);
+	}
+
 	headlessWallet.readSingleAddress(function(address){
 		my_address = address;
 	});
