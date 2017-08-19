@@ -31,9 +31,9 @@ getCurrentChampionShipsFromfootballDataOrg(function(arrCurrentChampionShips) {
 });
 
 if (conf.bRunWitness)
-	require('byteball-witness');
+    require('byteball-witness');
 
-const RETRY_TIMEOUT = 5*60*1000;
+const RETRY_TIMEOUT = 5 * 60 * 1000;
 var assocQueuedDataFeeds = {};
 var assocDeviceAddressesByFeedName = {};
 
@@ -42,155 +42,159 @@ var my_address;
 var count_witnessings_available = 0;
 
 if (!conf.bSingleAddress)
-	throw Error('oracle must be single address');
+    throw Error('oracle must be single address');
 
 if (!conf.bRunWitness)
-	headlessWallet.setupChatEventHandlers();
+    headlessWallet.setupChatEventHandlers();
 
 // this duplicates witness code if we are also running a witness
-function readNumberOfWitnessingsAvailable(handleNumber){
-	count_witnessings_available--;
-	if (count_witnessings_available > conf.MIN_AVAILABLE_WITNESSINGS)
-		return handleNumber(count_witnessings_available);
-	db.query(
-		"SELECT COUNT(*) AS count_big_outputs FROM outputs JOIN units USING(unit) \n\
-		WHERE address=? AND is_stable=1 AND amount>=? AND asset IS NULL AND is_spent=0", 
-		[my_address, WITNESSING_COST], 
-		function(rows){
-			var count_big_outputs = rows[0].count_big_outputs;
-			db.query(
-				"SELECT SUM(amount) AS total FROM outputs JOIN units USING(unit) \n\
+function readNumberOfWitnessingsAvailable(handleNumber) {
+    count_witnessings_available--;
+    if (count_witnessings_available > conf.MIN_AVAILABLE_WITNESSINGS)
+        return handleNumber(count_witnessings_available);
+    db.query(
+        "SELECT COUNT(*) AS count_big_outputs FROM outputs JOIN units USING(unit) \n\
+		WHERE address=? AND is_stable=1 AND amount>=? AND asset IS NULL AND is_spent=0", [my_address, WITNESSING_COST],
+        function(rows) {
+            var count_big_outputs = rows[0].count_big_outputs;
+            db.query(
+                "SELECT SUM(amount) AS total FROM outputs JOIN units USING(unit) \n\
 				WHERE address=? AND is_stable=1 AND amount<? AND asset IS NULL AND is_spent=0 \n\
 				UNION \n\
 				SELECT SUM(amount) AS total FROM witnessing_outputs \n\
 				WHERE address=? AND is_spent=0 \n\
 				UNION \n\
 				SELECT SUM(amount) AS total FROM headers_commission_outputs \n\
-				WHERE address=? AND is_spent=0", 
-				[my_address, WITNESSING_COST, my_address, my_address], 
-				function(rows){
-					var total = rows.reduce(function(prev, row){ return (prev + row.total); }, 0);
-					var count_witnessings_paid_by_small_outputs_and_commissions = Math.round(total / WITNESSING_COST);
-					count_witnessings_available = count_big_outputs + count_witnessings_paid_by_small_outputs_and_commissions;
-					handleNumber(count_witnessings_available);
-				}
-			);
-		}
-	);
+				WHERE address=? AND is_spent=0", [my_address, WITNESSING_COST, my_address, my_address],
+                function(rows) {
+                    var total = rows.reduce(function(prev, row) {
+                        return (prev + row.total);
+                    }, 0);
+                    var count_witnessings_paid_by_small_outputs_and_commissions = Math.round(total / WITNESSING_COST);
+                    count_witnessings_available = count_big_outputs + count_witnessings_paid_by_small_outputs_and_commissions;
+                    handleNumber(count_witnessings_available);
+                }
+            );
+        }
+    );
 }
 
 
 // make sure we never run out of spendable (stable) outputs. Keep the number above a threshold, and if it drops below, produce more outputs than consume.
-function createOptimalOutputs(handleOutputs){
-	var arrOutputs = [{amount: 0, address: my_address}];
-	readNumberOfWitnessingsAvailable(function(count){
-		if (count > conf.MIN_AVAILABLE_WITNESSINGS)
-			return handleOutputs(arrOutputs);
-		// try to split the biggest output in two
-		db.query(
-			"SELECT amount FROM outputs JOIN units USING(unit) \n\
+function createOptimalOutputs(handleOutputs) {
+    var arrOutputs = [{
+        amount: 0,
+        address: my_address
+    }];
+    readNumberOfWitnessingsAvailable(function(count) {
+        if (count > conf.MIN_AVAILABLE_WITNESSINGS)
+            return handleOutputs(arrOutputs);
+        // try to split the biggest output in two
+        db.query(
+            "SELECT amount FROM outputs JOIN units USING(unit) \n\
 			WHERE address=? AND is_stable=1 AND amount>=? AND asset IS NULL AND is_spent=0 \n\
-			ORDER BY amount DESC LIMIT 1", 
-			[my_address, 2*WITNESSING_COST],
-			function(rows){
-				if (rows.length === 0){
-					notifications.notifyAdminAboutPostingProblem('only '+count+" spendable outputs left, and can't add more");
-					return handleOutputs(arrOutputs);
-				}
-				var amount = rows[0].amount;
-			//	notifications.notifyAdminAboutPostingProblem('only '+count+" spendable outputs left, will split an output of "+amount);
-				arrOutputs.push({amount: Math.round(amount/2), address: my_address});
-				handleOutputs(arrOutputs);
-			}
-		);
-	});
+			ORDER BY amount DESC LIMIT 1", [my_address, 2 * WITNESSING_COST],
+            function(rows) {
+                if (rows.length === 0) {
+                    notifications.notifyAdminAboutPostingProblem('only ' + count + " spendable outputs left, and can't add more");
+                    return handleOutputs(arrOutputs);
+                }
+                var amount = rows[0].amount;
+                //	notifications.notifyAdminAboutPostingProblem('only '+count+" spendable outputs left, will split an output of "+amount);
+                arrOutputs.push({
+                    amount: Math.round(amount / 2),
+                    address: my_address
+                });
+                handleOutputs(arrOutputs);
+            }
+        );
+    });
 }
 
 
 
-function postDataFeed(datafeed, onDone){
-	function onError(err){
-		notifications.notifyAdminAboutFailedPosting(err);
-		onDone(err);
-	}
-	var network = require('byteballcore/network.js');
-	var composer = require('byteballcore/composer.js');
-	createOptimalOutputs(function(arrOutputs){
-		let params = {
-			paying_addresses: [my_address], 
-			outputs: arrOutputs, 
-			signer: headlessWallet.signer, 
-			callbacks: composer.getSavingCallbacks({
-				ifNotEnoughFunds: onError,
-				ifError: onError,
-				ifOk: function(objJoint){
-					network.broadcastJoint(objJoint);
-					onDone();
-				}
-			})
-		};
-		if (conf.bPostTimestamp)
-			datafeed.timestamp = Date.now();
-		let objMessage = {
-			app: "data_feed",
-			payload_location: "inline",
-			payload_hash: objectHash.getBase64Hash(datafeed),
-			payload: datafeed
-		};
-		params.messages = [objMessage];
-		composer.composeJoint(params);
-	});
+function postDataFeed(datafeed, onDone) {
+    function onError(err) {
+        notifications.notifyAdminAboutFailedPosting(err);
+        onDone(err);
+    }
+    var network = require('byteballcore/network.js');
+    var composer = require('byteballcore/composer.js');
+    createOptimalOutputs(function(arrOutputs) {
+        let params = {
+            paying_addresses: [my_address],
+            outputs: arrOutputs,
+            signer: headlessWallet.signer,
+            callbacks: composer.getSavingCallbacks({
+                ifNotEnoughFunds: onError,
+                ifError: onError,
+                ifOk: function(objJoint) {
+                    network.broadcastJoint(objJoint);
+                    onDone();
+                }
+            })
+        };
+        if (conf.bPostTimestamp)
+            datafeed.timestamp = Date.now();
+        let objMessage = {
+            app: "data_feed",
+            payload_location: "inline",
+            payload_hash: objectHash.getBase64Hash(datafeed),
+            payload: datafeed
+        };
+        params.messages = [objMessage];
+        composer.composeJoint(params);
+    });
 }
 
-function reliablyPostDataFeed(datafeed){
-	var feed_name, feed_value;
-	for(var key in datafeed){
-		feed_name = key;
-		feed_value = datafeed[key];
-		break;
-	}
-	if (!feed_name)
-		throw Error('no feed name');
+function reliablyPostDataFeed(datafeed) {
+    var feed_name, feed_value;
+    for (var key in datafeed) {
+        feed_name = key;
+        feed_value = datafeed[key];
+        break;
+    }
+    if (!feed_name)
+        throw Error('no feed name');
 
-	var onDataFeedResult = function(err){
-		if (err){
-			console.log('will retry posting the data feed later');
-			setTimeout(function(){
-				postDataFeed(datafeed, onDataFeedResult);
-			}, RETRY_TIMEOUT + Math.round(Math.random()*3000));
-		}
+    var onDataFeedResult = function(err) {
+        if (err) {
+            console.log('will retry posting the data feed later');
+            setTimeout(function() {
+                postDataFeed(datafeed, onDataFeedResult);
+            }, RETRY_TIMEOUT + Math.round(Math.random() * 3000));
+        }
 
-	};
-	postDataFeed(datafeed, onDataFeedResult);
+    };
+    postDataFeed(datafeed, onDataFeedResult);
 }
 
 
-function readExistingData(feed_name, handleResult){
-	db.query(
-		"SELECT feed_name, is_stable, value \n\
+function readExistingData(feed_name, handleResult) {
+    db.query(
+        "SELECT feed_name, is_stable, value \n\
 		FROM data_feeds CROSS JOIN unit_authors USING(unit) CROSS JOIN units USING(unit) \n\
-		WHERE address=? AND feed_name=?", 
-		[my_address, feed_name],
-		function(rows){
-			if( rows.length === 0)
-				return handleResult(false);
-			if (rows.length > 1)
-				notifications.notifyAdmin(rows.length+' entries for feed', feed_name);
-			return handleResult(true, rows[0].is_stable, rows[0].value);
-		}
-	);
+		WHERE address=? AND feed_name=?", [my_address, feed_name],
+        function(rows) {
+            if (rows.length === 0)
+                return handleResult(false);
+            if (rows.length > 1)
+                notifications.notifyAdmin(rows.length + ' entries for feed', feed_name);
+            return handleResult(true, rows[0].is_stable, rows[0].value);
+        }
+    );
 }
 
-function homeInstructions(){
-	var instructions="Please choose a championship:\n";
-	 for (var cat in calendar) {
-		instructions+='\n---' + cat +'---\n'; 
-		  for (var keyword in calendar[cat]){
-			instructions+=txtCommandButton(keyword)+' ';   
-		  }	 
-	 }
-	
-	return instructions;
+function homeInstructions() {
+    var instructions = "Please choose a championship:\n";
+    for (var cat in calendar) {
+        instructions += '\n---' + cat + '---\n';
+        for (var keyword in calendar[cat]) {
+            instructions += txtCommandButton(keyword) + ' ';
+        }
+    }
+
+    return instructions;
 }
 
 function championshipInstructions(championshipName) {
@@ -219,47 +223,45 @@ function fixturesBeforeNow(championship) {
     var bufferBefore = [];
     for (var feedName in championship) {
         if (championship[feedName].date.isBefore(moment())) {
-            bufferBefore.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"),feedName)+"\n");
+            bufferBefore.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
         }
     }
-	if (bufferBefore.length == 0 ) {
-	    txtReturn = "No results found  \n";
+    if (bufferBefore.length == 0) {
+        txtReturn = "No results found  \n";
         return txtReturn;
-	}
-    txtReturn += bufferBefore.slice(-12).join('\n') + "\n" ;
+    }
+    txtReturn += bufferBefore.slice(-12).join('\n') + "\n";
     return txtReturn;
 }
 
 function searchFixtures(championship, search) {
-        var splitText = search.split(/\sVS\s|\sVs.\s|\svs\s|\sVS\.\s|\sV\.\s/);
-
-        var buffer = [];
-
-        if (splitText.length === 1) {
-            for (var feedName in championship) {
-                if (removeAccents(championship[feedName].homeTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1 || removeAccents(championship[feedName].awayTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1) {
-                    buffer.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
-                }
+    var splitText = search.split(/\sVS\s|\sVs.\s|\svs\s|\sVS\.\s|\sV\.\s/);
+    var buffer = [];
+    if (splitText.length === 1) {
+        for (var feedName in championship) {
+            if (removeAccents(championship[feedName].homeTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1 || removeAccents(championship[feedName].awayTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1) {
+                buffer.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
             }
-        } else if (splitText.length === 2) {
-            var team1Name = splitText[0].replace(/\s/g, '');
-            var team2Name = splitText[1].replace(/\s/g, '');
-            for (var feedName in championship) {
-                if ((removeAccents(championship[feedName].homeTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team1Name).toUpperCase()) > -1 && removeAccents(championship[feedName].awayTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team2Name).toUpperCase()) > -1) ||
-                    (removeAccents(championship[feedName].homeTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team2Name).toUpperCase()) > -1 && removeAccents(championship[feedName].awayTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team1Name).toUpperCase()) > -1)) {
-                    buffer.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
-                }
-            }
-
-        } else  {
-			return "Incorrect request \n";
-		}
-		
-        if (buffer.length == 0) {
-            return "No results found  \n";
         }
-        return  buffer.join('\n') + "\n";
+    } else if (splitText.length === 2) {
+        var team1Name = splitText[0].replace(/\s/g, '');
+        var team2Name = splitText[1].replace(/\s/g, '');
+        for (var feedName in championship) {
+            if ((removeAccents(championship[feedName].homeTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team1Name).toUpperCase()) > -1 && removeAccents(championship[feedName].awayTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team2Name).toUpperCase()) > -1) ||
+                (removeAccents(championship[feedName].homeTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team2Name).toUpperCase()) > -1 && removeAccents(championship[feedName].awayTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team1Name).toUpperCase()) > -1)) {
+                buffer.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
+            }
+        }
+
+    } else {
+        return "Incorrect request \n";
     }
+
+    if (buffer.length == 0) {
+        return "No results found  \n";
+    }
+    return buffer.join('\n') + "\n";
+}
 
 
 function retrieveAndPostResult(url, feedName, getResult, handle) {
@@ -276,7 +278,7 @@ function retrieveAndPostResult(url, feedName, getResult, handle) {
             var parsedBody = JSON.parse(body);
 
         } catch (e) {
-            notifications.notifyAdmin("Result for " + feedName + " can't be parsed", e + "\n" + body );
+            notifications.notifyAdmin("Result for " + feedName + " can't be parsed", e + "\n" + body);
             return handle('Couldn t parse result, admin is notified');
         }
 
@@ -348,9 +350,8 @@ setInterval(function() {
             function(rows) {
                 rows.forEach(
                     function(row) {
-                        if (calendar[row.cat]&&calendar[row.cat][row.championship]) {
-                            retrieveAndPostResult(row.url_result, row.feed_name, calendar[row.cat][row.championship].getResult, function() {
-                            });
+                        if (calendar[row.cat] && calendar[row.cat][row.championship]) {
+                            retrieveAndPostResult(row.url_result, row.feed_name, calendar[row.cat][row.championship].getResult, function() {});
                         } else {
                             notifications.notifyAdmin("Championship " + feedName + " not in calendar anymore, can't get result", "");
                         }
@@ -365,9 +366,9 @@ setInterval(function() {
 
 
 
-eventBus.on('paired', function(from_address){
-	var device = require('byteballcore/device.js');
-	device.sendMessageToDevice(from_address, 'text', homeInstructions());
+eventBus.on('paired', function(from_address) {
+    var device = require('byteballcore/device.js');
+    device.sendMessageToDevice(from_address, 'text', homeInstructions());
 });
 
 eventBus.on('text', function(from_address, text) {
@@ -424,27 +425,27 @@ function txtCommandButton(label, command) {
 
 
 function removeAbbreviations(text) {
-	return text.replace(/\b(AC|ADO|AFC|AJ|AS|AZ|BSC|CF|EA|EC|ES|FC|FCO|FSV|GO|JC|LB|NAC|MSV|OGC|OSC|PR|RC|SC|PEC|PSV|SCO|SM|SV|TSG|US|VfB|VfL)\b/g, '').trim();
+    return text.replace(/\b(AC|ADO|AFC|AJ|AS|AZ|BSC|CF|EA|EC|ES|FC|FCO|FSV|GO|JC|LB|NAC|MSV|OGC|OSC|PR|RC|SC|PEC|PSV|SCO|SM|SV|TSG|US|VfB|VfL)\b/g, '').trim();
 }
 
 function removeAccents(str) {
-  var accents    = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
-  var accentsOut = "AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz";
-  str = str.split('');
-  var strLen = str.length;
-  var i, x;
-  for (i = 0; i < strLen; i++) {
-    if ((x = accents.indexOf(str[i])) != -1) {
-      str[i] = accentsOut[x];
+    var accents = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
+    var accentsOut = "AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz";
+    str = str.split('');
+    var strLen = str.length;
+    var i, x;
+    for (i = 0; i < strLen; i++) {
+        if ((x = accents.indexOf(str[i])) != -1) {
+            str[i] = accentsOut[x];
+        }
     }
-  }
-  return str.join('');
+    return str.join('');
 }
 
 
 
 function getResponseForFeedAlreadyInDAG(homeTeamName, awayTeamName, date, result, is_stable) {
-   return homeTeamName + ' vs ' + awayTeamName + '\n' +
+    return homeTeamName + ' vs ' + awayTeamName + '\n' +
         'on ' + moment.utc(date).format("DD MMMM YYYY") + '\n' +
         (result === 'draw' ? 'draw' : result + ' won') +
         (is_stable ?
@@ -457,7 +458,9 @@ function getCurrentChampionShipsFromfootballDataOrg(handle) {
     var arrCompetitions = [];
     request({
         url: 'http://football-data.org/v1/competitions',
-		headers: {'X-Auth-Token': conf.footballDataApiKey}
+        headers: {
+            'X-Auth-Token': conf.footballDataApiKey
+        }
     }, function(error, response, body) {
         if (error || response.statusCode !== 200) {
             throw Error('couldn t get current championships from footballDataOrg');
@@ -572,7 +575,9 @@ function initMySportsFeedsCom(category, keyWord, url) {
     if (typeof calendar[category][keyWord] === 'undefined') {
         calendar[category][keyWord] = {};
     }
-    var headers = { "Authorization": "Basic " + btoa(conf.MySportsFeedsUser + ":" + conf.MySportsFeedsPw)};
+    var headers = {
+        "Authorization": "Basic " + btoa(conf.MySportsFeedsUser + ":" + conf.MySportsFeedsPw)
+    };
     request({
         url: url + "full_game_schedule.json",
         headers: headers
@@ -581,8 +586,8 @@ function initMySportsFeedsCom(category, keyWord, url) {
             throw Error('couldn t get events from MySportsFeedsCom ' + url);
         }
 
-            var jsonResult = JSON.parse(body);
-            var fixtures = jsonResult.fullgameschedule.gameentry;
+        var jsonResult = JSON.parse(body);
+        var fixtures = jsonResult.fullgameschedule.gameentry;
 
         if (fixtures.length == 0) {
             throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
@@ -602,16 +607,16 @@ function initMySportsFeedsCom(category, keyWord, url) {
             fixture.time.split(':');
             fixtureDate.add(fixture.time[0], 'hours').add(fixture.time[1], 'minutes');
             fixtureDate.add(5, 'hours'); //EST to UTC time
-	 
+
             return {
                 homeTeam: homeTeamName,
                 awayTeam: awayTeamName,
                 feedHomeTeamName: feedHomeTeamName,
                 feedAwayTeamName: feedAwayTeamName,
                 feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
-				urlResult: url + "game_boxscore.json?gameid=" + fixture.id,
-				date: fixtureDate.utc(),
-				localDate:moment.utc(fixture.date)
+                urlResult: url + "game_boxscore.json?gameid=" + fixture.id,
+                date: fixtureDate.utc(),
+                localDate: moment.utc(fixture.date)
             }
         }
 
@@ -626,26 +631,26 @@ function initMySportsFeedsCom(category, keyWord, url) {
                 calendar[category][keyWord].feedNames[game.feedName] = game;
             }
         });
-		//there are several different getResult function depending of sport
-		
-		calendar[category][keyWord].getResult={};
-		calendar[category][keyWord].getResult.headers = headers;
+        //there are several different getResult function depending of sport
+
+        calendar[category][keyWord].getResult = {};
+        calendar[category][keyWord].getResult.headers = headers;
         if (url.indexOf('mlb') > -1) {
-            calendar[category][keyWord].getResult.process = function (response,handle) {
+            calendar[category][keyWord].getResult.process = function(response, handle) {
                 if (response.gameboxscore.inningSummary.inningTotals) {
                     let fixture = encodeFixture(response.gameboxscore.game);
 
                     if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) > Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
-						fixture.winner=fixture.awayTeam;
+                        fixture.winner = fixture.awayTeam;
                         fixture.winnerCode = fixture.feedAwayTeamName;
                     }
                     if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) < Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
-						fixture.winner=fixture.homeTeam;
+                        fixture.winner = fixture.homeTeam;
                         fixture.winnerCode = fixture.feedHomeTeamName;
                     }
                     if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) == Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
-						fixture.winner='draw';	
-                        fixture.winnerCode = 'draw';					
+                        fixture.winner = 'draw';
+                        fixture.winnerCode = 'draw';
                     }
                     handle(null, fixture);
                 } else {
@@ -653,23 +658,23 @@ function initMySportsFeedsCom(category, keyWord, url) {
                 }
             };
         }
-		
-		if (url.indexOf('nba') > -1 || url.indexOf('nfl') > -1) {
-            calendar[category][keyWord].getResult.process = function (response,handle) {
+
+        if (url.indexOf('nba') > -1 || url.indexOf('nfl') > -1) {
+            calendar[category][keyWord].getResult.process = function(response, handle) {
                 if (response.gameboxscore.quarterSummary.quarterTotals) {
                     let fixture = encodeFixture(response.gameboxscore.game);
 
                     if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) > Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
-						fixture.winner=fixture.awayTeam;
+                        fixture.winner = fixture.awayTeam;
                         fixture.winnerCode = fixture.feedAwayTeamName;
                     }
                     if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) < Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
-						fixture.winner=fixture.homeTeam;
+                        fixture.winner = fixture.homeTeam;
                         fixture.winnerCode = fixture.feedHomeTeamName;
                     }
                     if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) == Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
-						fixture.winner='draw';	
-                        fixture.winnerCode = 'draw';					
+                        fixture.winner = 'draw';
+                        fixture.winnerCode = 'draw';
                     }
                     handle(null, fixture);
                 } else {
@@ -677,23 +682,23 @@ function initMySportsFeedsCom(category, keyWord, url) {
                 }
             };
         }
-		
-	    if (url.indexOf('nhl') > -1) {
-            calendar[category][keyWord].getResult.process = function (response,handle) {
+
+        if (url.indexOf('nhl') > -1) {
+            calendar[category][keyWord].getResult.process = function(response, handle) {
                 if (response.gameboxscore.periodSummary.periodTotals) {
                     let fixture = encodeFixture(response.gameboxscore.game);
 
                     if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) > Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
-						fixture.winner=fixture.awayTeam;
+                        fixture.winner = fixture.awayTeam;
                         fixture.winnerCode = fixture.feedAwayTeamName;
                     }
                     if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) < Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
-						fixture.winner=fixture.homeTeam;
+                        fixture.winner = fixture.homeTeam;
                         fixture.winnerCode = fixture.feedHomeTeamName;
                     }
                     if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) == Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
-						fixture.winner='draw';	
-                        fixture.winnerCode = 'draw';					
+                        fixture.winner = 'draw';
+                        fixture.winnerCode = 'draw';
                     }
                     handle(null, fixture);
                 } else {
@@ -701,8 +706,8 @@ function initMySportsFeedsCom(category, keyWord, url) {
                 }
             };
         }
-			
-		
+
+
         console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
     });
 
@@ -791,34 +796,34 @@ function initUfcInfoCom(category, keyWord) {
 }
 */
 
-eventBus.on('my_transactions_became_stable', function(arrUnits){
-	
-	db.query("SELECT feed_name FROM data_feeds WHERE unit IN(?)", [arrUnits], function(rows){
-		rows.forEach(row => {
-			    notifyForDatafeedPosted(row.feed_name);
-			});
-		});
-	
+eventBus.on('my_transactions_became_stable', function(arrUnits) {
+
+    db.query("SELECT feed_name FROM data_feeds WHERE unit IN(?)", [arrUnits], function(rows) {
+        rows.forEach(row => {
+            notifyForDatafeedPosted(row.feed_name);
+        });
+    });
+
 });
 
 
 //////
 
-eventBus.on('headless_wallet_ready', function(){
-	if (!conf.admin_email || !conf.from_email){
-		console.log("please specify admin_email and from_email in your "+desktopApp.getAppDataDir()+'/conf.json');
-		process.exit(1);
-	}
-	if (!conf.footballDataApiKey){
-		console.log("please specify footballDataApiKey in your "+desktopApp.getAppDataDir()+'/conf.json');
-		process.exit(1);
-	}
-	if (!conf.MySportsFeedsUser||!conf.MySportsFeedsPw){
-		console.log("please specify MySportsFeeds credentials in your "+desktopApp.getAppDataDir()+'/conf.json');
-		process.exit(1);
-	}
+eventBus.on('headless_wallet_ready', function() {
+    if (!conf.admin_email || !conf.from_email) {
+        console.log("please specify admin_email and from_email in your " + desktopApp.getAppDataDir() + '/conf.json');
+        process.exit(1);
+    }
+    if (!conf.footballDataApiKey) {
+        console.log("please specify footballDataApiKey in your " + desktopApp.getAppDataDir() + '/conf.json');
+        process.exit(1);
+    }
+    if (!conf.MySportsFeedsUser || !conf.MySportsFeedsPw) {
+        console.log("please specify MySportsFeeds credentials in your " + desktopApp.getAppDataDir() + '/conf.json');
+        process.exit(1);
+    }
 
-	headlessWallet.readSingleAddress(function(address){
-		my_address = address;
-	});
+    headlessWallet.readSingleAddress(function(address) {
+        my_address = address;
+    });
 });
