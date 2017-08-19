@@ -23,7 +23,7 @@ initMySportsFeedsCom('American football', 'NFL', 'https://api.mysportsfeeds.com/
 initMySportsFeedsCom('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2017-2018-regular/');
 //initUfcInfoCom('Mixed Martial Arts', 'UFC');//not working yet
 
-//------for soccer we fetch championship available
+//------for soccer we fetch championships available
 getCurrentChampionShipsFromfootballDataOrg(function(arrCurrentChampionShips) {
     arrCurrentChampionShips.forEach(function(currentChampionShip) {
         initFootballDataOrg(currentChampionShip.category, currentChampionShip.keyword, currentChampionShip.url);
@@ -194,7 +194,7 @@ function homeInstructions(){
 }
 
 function championshipInstructions(championshipName) {
-    return "-----------------------------  " + championshipName + "  -----------------------------\n Actions: \n" + " - List " + txtCommandButton("last") + " games played \n - List " + txtCommandButton("coming") + " games \n" + " - Return " + txtCommandButton("home") + "\n - Or write the team you want to search like 'mia' for Miami";
+    return "-----------------------------  " + championshipName + "  -----------------------------\n Actions: \n" + " - List " + txtCommandButton("last") + " games played \n - List " + txtCommandButton("coming") + " games \n" + " - Return " + txtCommandButton("home") + "\n - Or write the team names in the format: 'team1 vs team2', partial names are also accepted";
 }
 
 
@@ -231,20 +231,35 @@ function fixturesBeforeNow(championship) {
 }
 
 function searchFixtures(championship, search) {
-    var txtReturn = '';
-    var buffer = [];
-    for (var feedName in championship) {
-        if (removeAccents(championship[feedName].homeTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1 || removeAccents(championship[feedName].awayTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1) {
-            buffer.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"),feedName)+"\n");
+        var splitText = search.split(/\sVS\s|\sVs.\s|\svs\s|\sVS\.\s|\sV\.\s/);
+
+        var buffer = [];
+
+        if (splitText.length === 1) {
+            for (var feedName in championship) {
+                if (removeAccents(championship[feedName].homeTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1 || removeAccents(championship[feedName].awayTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1) {
+                    buffer.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
+                }
+            }
+        } else if (splitText.length === 2) {
+            var team1Name = splitText[0].replace(/\s/g, '');
+            var team2Name = splitText[1].replace(/\s/g, '');
+            for (var feedName in championship) {
+                if ((removeAccents(championship[feedName].homeTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team1Name).toUpperCase()) > -1 && removeAccents(championship[feedName].awayTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team2Name).toUpperCase()) > -1) ||
+                    (removeAccents(championship[feedName].homeTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team2Name).toUpperCase()) > -1 && removeAccents(championship[feedName].awayTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team1Name).toUpperCase()) > -1)) {
+                    buffer.push(txtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
+                }
+            }
+
+        } else  {
+			return "Incorrect request \n";
+		}
+		
+        if (buffer.length == 0) {
+            return "No results found  \n";
         }
+        return  buffer.join('\n') + "\n";
     }
-	if (buffer.length == 0) {
-	txtReturn = "No results found  \n";
-    return txtReturn;
-	}
-    txtReturn += buffer.join('\n') + "\n";
-    return txtReturn;
-}
 
 
 function retrieveAndPostResult(url, feedName, getResult, handle) {
@@ -393,7 +408,7 @@ eventBus.on('text', function(from_address, text) {
             return device.sendMessageToDevice(from_address, 'text', fixturesAfterNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + championshipInstructions(arrPeers[from_address].step));
 
         }
-        return device.sendMessageToDevice(from_address, 'text', "Search for " + text + " :\n" + searchFixtures(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames, text) + championshipInstructions(arrPeers[from_address].step));
+        return device.sendMessageToDevice(from_address, 'text', "Search for '" + text + "' :\n" + searchFixtures(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames, text) + championshipInstructions(arrPeers[from_address].step));
 
     }
 
@@ -470,7 +485,9 @@ function initFootballDataOrg(category, keyWord, url) {
         calendar[category][keyWord] = {};
     }
 
-	var headers = {'X-Auth-Token': conf.footballDataApiKey};
+    var headers = {
+        'X-Auth-Token': conf.footballDataApiKey
+    };
     request({
             url: url,
             headers: headers
@@ -488,63 +505,62 @@ function initFootballDataOrg(category, keyWord, url) {
             if (fixtures.length == 0) {
                 throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
             }
-			
-			function  encodeFixture(fixture){
-			    let homeTeamName = removeAbbreviations(fixture.homeTeamName);
+
+            function encodeFixture(fixture) {
+                let homeTeamName = removeAbbreviations(fixture.homeTeamName);
                 let awayTeamName = removeAbbreviations(fixture.awayTeamName);
                 let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
-                let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();	
-				  return {
-                homeTeam: homeTeamName,
-                awayTeam: awayTeamName,
-                feedHomeTeamName: feedHomeTeamName,
-                feedAwayTeamName: feedAwayTeamName,
-                feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
-				urlResult: fixture._links.self.href,
-				date: moment.utc(fixture.date),
-				localDate: moment.utc(fixture.date) //local date is not given by FootballDataOrg, a shift in date can happen for competitions in america
+                let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
+                return {
+                    homeTeam: homeTeamName,
+                    awayTeam: awayTeamName,
+                    feedHomeTeamName: feedHomeTeamName,
+                    feedAwayTeamName: feedAwayTeamName,
+                    feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
+                    urlResult: fixture._links.self.href,
+                    date: moment.utc(fixture.date),
+                    localDate: moment.utc(fixture.date) //local date is not given by FootballDataOrg, a shift in date can happen for competitions in america
                 }
-			}
-			
+            }
+
             var arrGames = fixtures.map(fixture => {
-				 return encodeFixture(fixture);
+                return encodeFixture(fixture);
             });
 
             calendar[category][keyWord].feedNames = {};
             arrGames.forEach(function(game) {
                 calendar[category][keyWord].feedNames[game.feedName] = game;
             });
-	
-			calendar[category][keyWord].getResult = {};
-			calendar[category][keyWord].getResult.headers = headers;
-            calendar[category][keyWord].getResult.process = function (response,handle) {
-                if (response.fixture.result&&response.fixture.result.goalsAwayTeam!=null) {
+
+            calendar[category][keyWord].getResult = {};
+            calendar[category][keyWord].getResult.headers = headers;
+            calendar[category][keyWord].getResult.process = function(response, handle) {
+                if (response.fixture.result && response.fixture.result.goalsAwayTeam != null) {
                     let fixture = encodeFixture(response.fixture);
 
                     if (Number(response.fixture.result.goalsAwayTeam) > Number(response.fixture.result.goalsHomeTeam)) {
-						fixture.winner=fixture.homeTeam;
+                        fixture.winner = fixture.homeTeam;
                         fixture.winnerCode = fixture.feedAwayTeamName;
                     }
                     if (Number(response.fixture.result.goalsAwayTeam) < Number(response.fixture.result.goalsHomeTeam)) {
-						fixture.winner=fixture.homeTeam;
+                        fixture.winner = fixture.homeTeam;
                         fixture.winnerCode = fixture.feedHomeTeamName;
                     }
                     if (Number(response.fixture.result.goalsAwayTeam) == Number(response.fixture.result.goalsHomeTeam)) {
-						fixture.winner='draw';	
-                        fixture.winnerCode = 'draw';					
+                        fixture.winner = 'draw';
+                        fixture.winnerCode = 'draw';
                     }
                     handle(null, fixture);
                 } else {
                     handle('No result in response');
                 }
             };
-				console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
+            console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
 
         }
 
     );
 }
-
 
 
 
