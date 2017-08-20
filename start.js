@@ -18,7 +18,7 @@ var arrPeers = [];
 //------The differents feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
 initMySportsFeedsCom('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2017-regular/');
-initMySportsFeedsCom('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2016-2017-regular/');
+initMySportsFeedsCom('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2017-2018-regular/');
 initMySportsFeedsCom('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2017-regular/');
 initMySportsFeedsCom('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2017-2018-regular/');
 //initUfcInfoCom('Mixed Martial Arts', 'UFC');//not working yet
@@ -394,14 +394,23 @@ eventBus.on('text', function(from_address, text) {
             return device.sendMessageToDevice(from_address, 'text', championshipInstructions(text));
         }
     }
+	
+   for (var cat in calendar) {
+        for (var championship in calendar[cat]) {
+           if (calendar[cat][championship].feedNames[text]) {
+               feedStatus(arrPeers[from_address], calendar[cat][championship].feedNames[text], from_address, calendar[cat][championship].getResult, function(response) {
+                   device.sendMessageToDevice(from_address, 'text', response);
+               });
+               return;
+           }
 
+       }
+   }
+
+	
+	
     if (calendar[arrPeers[from_address].cat] && arrPeers[from_address].step != 'home') {
-        if (calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames[text]) {
-            feedStatus(arrPeers[from_address], calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames[text], from_address, calendar[arrPeers[from_address].cat][arrPeers[from_address].step].getResult, function(response) {
-                device.sendMessageToDevice(from_address, 'text', response);
-            });
-            return;
-        }
+	
         if (text == "last") {
             return device.sendMessageToDevice(from_address, 'text', fixturesBeforeNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + championshipInstructions(arrPeers[from_address].step));
         }
