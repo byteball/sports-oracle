@@ -310,18 +310,18 @@ function feedStatus(peer, fixture, from_address, getResult, handle) {
 
             if (exists) {
                 if (!is_stable) {
-                    db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,url_result,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+                    db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,result_url,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
                 }
                 handle(getResponseForFeedAlreadyInDAG(fixture.homeTeam, fixture.awayTeam, fixture.date.format("YYYY-MM-DD HH:mm:ss"), value, is_stable));
             } else {
-                db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,url_result,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+                db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,result_url,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
                 retrieveAndPostResult(fixture.urlResult, fixture.feedName, getResult, function(txt) {
                     handle(txt);
                 });
             }
         });
     } else {
-        db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,url_result,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+        db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,result_url,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
         handle("The code for the sport oracle is: \n" + fixture.feedName + "\n Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] + "\n Result is available 6 hours after the fixture, you will be notified when you can unlock the contract.");
     }
 }
@@ -351,7 +351,7 @@ setInterval(function() {
                 rows.forEach(
                     function(row) {
                         if (calendar[row.cat] && calendar[row.cat][row.championship]) {
-                            retrieveAndPostResult(row.url_result, row.feed_name, calendar[row.cat][row.championship].getResult, function() {});
+                            retrieveAndPostResult(row.result_url, row.feed_name, calendar[row.cat][row.championship].getResult, function() {});
                         } else {
                             notifications.notifyAdmin("Championship " + feedName + " not in calendar anymore, can't get result", "");
                         }
