@@ -591,15 +591,20 @@ function initMySportsFeedsCom(category, keyWord, url) {
 		headers: headers
 	}, function(error, response, body) {
 		if (error || response.statusCode !== 200) {
-			throw Error('couldn t get events from MySportsFeedsCom ' + url);
+			throw Error("couldn't get events from MySportsFeedsCom " + url);
 		}
 
-		var jsonResult = JSON.parse(body);
+		try {
+			var jsonResult = JSON.parse(body);
+		} catch (e) {
+			throw Error("Couldn't parse  footballDataOrg, error: " + e);
+		}
 		var fixtures = jsonResult.fullgameschedule.gameentry;
-
+		
 		if (fixtures.length == 0) {
-			throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
+			throw Error("fixtures array empty, couldn't get fixtures from footballDataOrg");
 		}
+	
 
 		function encodeFixture(fixture) {
 			let homeTeamName = fixture.homeTeam.City + " " + fixture.homeTeam.Name;
