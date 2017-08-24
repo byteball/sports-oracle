@@ -465,7 +465,7 @@ function getResponseForFeedAlreadyInDAG(homeTeamName, awayTeamName, date, result
 function getCurrentChampionShipsFromfootballDataOrg(handle) {
 	var arrCompetitions = [];
 	request({
-		url: 'http://football-data.org/v1/competitions',
+		url: 'https://api.football-data.org/v1/competitions',
 		headers: {
 			'X-Auth-Token': conf.footballDataApiKey
 		}
@@ -479,7 +479,7 @@ function getCurrentChampionShipsFromfootballDataOrg(handle) {
 			arrCompetitions.push({
 				category: 'Soccer',
 				keyword: competition.league,
-				url: competition._links.fixtures.href
+				url: competition._links.fixtures.href.replace('http:','https:')
 			});
 		});
 		handle(arrCompetitions);
