@@ -299,7 +299,7 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 			var datafeed = {};
 			datafeed[feedName] = result.winnerCode;
 			reliablyPostDataFeed(datafeed);
-			handle(result.homeTeam + " vs " + result.awayTeam + " on " + result.date.format("YYYY-MM-DD") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n The result is being posted in database, you will be notified when you can unlock your contract");
+			handle(result.homeTeam + " vs " + result.awayTeam + "\n on " + result.date.format("YYYY-MM-DD") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\n The data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
 
 		});
 	});
