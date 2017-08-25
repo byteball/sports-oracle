@@ -14,7 +14,7 @@ var btoa = require('btoa');
 var calendar = {};
 var arrPeers = [];
 
-//------The differents feeds are added to the calendar
+//------The different feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
 initMySportsFeedsCom('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2017-regular/');
 initMySportsFeedsCom('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2017-2018-regular/');
@@ -23,7 +23,7 @@ initMySportsFeedsCom('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pu
 //initUfcInfoCom('Mixed Martial Arts', 'UFC');//not working yet
 
 //------for soccer we fetch championships available
-getCurrentChampionShipsFromfootballDataOrg(function(arrCurrentChampionShips) {
+getCurrentChampionshipsFromFootballDataOrg(function(arrCurrentChampionShips) {
 	arrCurrentChampionShips.forEach(function(currentChampionShip) {
 		initFootballDataOrg(currentChampionShip.category, currentChampionShip.keyword, currentChampionShip.url);
 	});
@@ -211,7 +211,7 @@ function getFixturesAfterNow(championship) {
 	var bufferAfter = [];
 	for (var feedName in championship) {
 		if (championship[feedName].date.isAfter(moment())) {
-			bufferAfter.push(getTxtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
+			bufferAfter.push(getTxtCommandButton(championship[feedName].homeTeam + ' vs ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
 		}
 	}
 	if (bufferAfter.length == 0) {
@@ -227,7 +227,7 @@ function getFixturesBeforeNow(championship) {
 	var bufferBefore = [];
 	for (var feedName in championship) {
 		if (championship[feedName].date.isBefore(moment())) {
-			bufferBefore.push(getTxtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
+			bufferBefore.push(getTxtCommandButton(championship[feedName].homeTeam + ' vs ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
 		}
 	}
 	if (bufferBefore.length == 0) {
@@ -239,12 +239,12 @@ function getFixturesBeforeNow(championship) {
 }
 
 function searchFixtures(championship, search) {
-	var splitText = search.split(/\sVS\s|\sVs.\s|\svs\s|\sVS\.\s|\sV\.\s/);
+	var splitText = search.split(/\sVS\s|\sVs\.\s|\svs\s|\sVS\.\s|\sV\.\s/);
 	var buffer = [];
 	if (splitText.length === 1) {
 		for (var feedName in championship) {
 			if (removeAccents(championship[feedName].homeTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1 || removeAccents(championship[feedName].awayTeam).toUpperCase().indexOf(removeAccents(search).toUpperCase()) > -1) {
-				buffer.push(getTxtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
+				buffer.push(getTxtCommandButton(championship[feedName].homeTeam + ' vs ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
 			}
 		}
 	} else if (splitText.length === 2) {
@@ -253,7 +253,7 @@ function searchFixtures(championship, search) {
 		for (var feedName in championship) {
 			if ((removeAccents(championship[feedName].homeTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team1Name).toUpperCase()) > -1 && removeAccents(championship[feedName].awayTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team2Name).toUpperCase()) > -1) ||
 				(removeAccents(championship[feedName].homeTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team2Name).toUpperCase()) > -1 && removeAccents(championship[feedName].awayTeam).replace(/\s/g, '').toUpperCase().indexOf(removeAccents(team1Name).toUpperCase()) > -1)) {
-				buffer.push(getTxtCommandButton(championship[feedName].homeTeam + ' Vs. ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
+				buffer.push(getTxtCommandButton(championship[feedName].homeTeam + ' vs ' + championship[feedName].awayTeam + " on " + championship[feedName].localDate.format("YYYY-MM-DD"), feedName) + "\n");
 			}
 		}
 
@@ -299,7 +299,7 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 			var datafeed = {};
 			datafeed[feedName] = result.winnerCode;
 			reliablyPostDataFeed(datafeed);
-			handle(result.homeTeam + " vs " + result.awayTeam + "\n on " + result.date.format("YYYY-MM-DD") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\n The data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
+			handle(result.homeTeam + " vs " + result.awayTeam + "\n on " + result.date.format("YYYY-MM-DD") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
 
 		});
 	});
@@ -314,19 +314,19 @@ function getFeedStatus(peer, fixture, from_address, resultHelper, handle) {
 
 			if (exists) {
 				if (!is_stable) {
-					db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,result_url,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+					db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
 				}
 				handle(getResponseForFeedAlreadyInDAG(fixture.homeTeam, fixture.awayTeam, fixture.date.format("YYYY-MM-DD HH:mm:ss"), value, is_stable));
 			} else {
-				db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,result_url,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+				db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
 				retrieveAndPostResult(fixture.urlResult, fixture.feedName, resultHelper, function(txt) {
 					handle(txt);
 				});
 			}
 		});
 	} else {
-		db.query("INSERT INTO asked_fixtures (device_address,feed_name,fixture_date,status,result_url,cat,championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
-		handle("The code for the sport oracle is: \n" + fixture.feedName + "\n Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] + "\n Result is available 6 hours after the fixture, you will be notified when you can unlock the contract.");
+		db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+		handle("The code for the sport oracle is: \n" + fixture.feedName + "\nEg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] + "\nResult is available 6 hours after the fixture, you will be notified when you can unlock the contract.");
 	}
 }
 
@@ -467,7 +467,7 @@ function getResponseForFeedAlreadyInDAG(homeTeamName, awayTeamName, date, result
 }
 
 
-function getCurrentChampionShipsFromfootballDataOrg(handle) {
+function getCurrentChampionshipsFromFootballDataOrg(handle) {
 	var arrCompetitions = [];
 	request({
 		url: 'https://api.football-data.org/v1/competitions',
