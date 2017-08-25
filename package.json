@@ -26,6 +26,7 @@
 	"dependencies": {
 		"moment": "^2.18.1",
 		"request": "^2.79.0",
+		"btoa": "^1.1.2",
 		"byteballcore": "^0.2.18",
 		"byteball-witness": "git+https://github.com/byteball/byteball-witness.git"
 	}
