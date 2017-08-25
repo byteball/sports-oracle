@@ -355,7 +355,10 @@ setInterval(function() {
 			rows.forEach(
 				function(row) {
 					if (calendar[row.cat] && calendar[row.cat][row.championship]) {
-						retrieveAndPostResult(row.result_url, row.feed_name, calendar[row.cat][row.championship].resultHelper, function() {});
+						readExistingData(row.feed_name, function(exists) {
+							if(!exists)
+							retrieveAndPostResult(row.result_url, row.feed_name, calendar[row.cat][row.championship].resultHelper, function() {});
+						});
 					} else {
 						notifications.notifyAdmin("Championship " + feedName + " not in calendar anymore, can't get result", "");
 					}
