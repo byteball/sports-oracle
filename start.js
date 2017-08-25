@@ -532,7 +532,7 @@ function initFootballDataOrg(category, keyWord, url) {
 					feedHomeTeamName: feedHomeTeamName,
 					feedAwayTeamName: feedAwayTeamName,
 					feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
-					urlResult: fixture._links.self.href,
+					urlResult: fixture._links.self.href.replace('http:','https:'),
 					date: moment.utc(fixture.date),
 					localDate: moment.utc(fixture.date) //local date is not given by FootballDataOrg, a shift in date can happen for competitions in america
 				}
