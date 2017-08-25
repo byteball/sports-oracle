@@ -14,7 +14,6 @@ var btoa = require('btoa');
 var calendar = {};
 var arrPeers = [];
 
-
 //------The differents feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
 initMySportsFeedsCom('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2017-regular/');
@@ -35,7 +34,6 @@ if (conf.bRunWitness)
 
 const RETRY_TIMEOUT = 5 * 60 * 1000;
 var assocQueuedDataFeeds = {};
-var assocDeviceAddressesByFeedName = {};
 
 const WITNESSING_COST = 600; // size of typical witnessing unit
 var my_address;
@@ -156,7 +154,9 @@ function reliablyPostDataFeed(datafeed) {
 	}
 	if (!feed_name)
 		throw Error('no feed name');
-
+	if (assocQueuedDataFeeds[feed_name]) // already queued
+		return console.log(feed_name + " already queued");
+	assocQueuedDataFeeds[feed_name] = feed_value;
 	var onDataFeedResult = function(err) {
 		if (err) {
 			console.log('will retry posting the data feed later');
@@ -164,13 +164,17 @@ function reliablyPostDataFeed(datafeed) {
 				postDataFeed(datafeed, onDataFeedResult);
 			}, RETRY_TIMEOUT + Math.round(Math.random() * 3000));
 		}
-
+		else
+			delete assocQueuedDataFeeds[feed_name];
 	};
 	postDataFeed(datafeed, onDataFeedResult);
 }
 
 
 function readExistingData(feed_name, handleResult) {
+	if (assocQueuedDataFeeds[feed_name]) {
+		return handleResult(true, 0, assocQueuedDataFeeds[feed_name]);
+	}
 	db.query(
 		"SELECT feed_name, is_stable, value \n\
 		FROM data_feeds CROSS JOIN unit_authors USING(unit) CROSS JOIN units USING(unit) \n\
