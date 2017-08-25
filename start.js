@@ -343,26 +343,27 @@ function notifyForDatafeedPosted(feed_name) {
 			)
 
 			db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feed_name]);
-		});
+		}
+	);
 }
 
 
 setInterval(function() {
-		db.query(
-			"SELECT * FROM asked_fixtures WHERE fixture_date < datetime('now', '-6 hours') GROUP BY feed_name", [],
-			function(rows) {
-				rows.forEach(
-					function(row) {
-						if (calendar[row.cat] && calendar[row.cat][row.championship]) {
-							retrieveAndPostResult(row.result_url, row.feed_name, calendar[row.cat][row.championship].resultHelper, function() {});
-						} else {
-							notifications.notifyAdmin("Championship " + feedName + " not in calendar anymore, can't get result", "");
-						}
+	db.query(
+		"SELECT * FROM asked_fixtures WHERE fixture_date < datetime('now', '-6 hours') GROUP BY feed_name", [],
+		function(rows) {
+			rows.forEach(
+				function(row) {
+					if (calendar[row.cat] && calendar[row.cat][row.championship]) {
+						retrieveAndPostResult(row.result_url, row.feed_name, calendar[row.cat][row.championship].resultHelper, function() {});
+					} else {
+						notifications.notifyAdmin("Championship " + feedName + " not in calendar anymore, can't get result", "");
 					}
-				)
+				}
+			)
 
-			});
-
+		}
+	);
 },
 1000 * 360);
 
