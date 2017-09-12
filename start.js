@@ -299,7 +299,7 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 			var datafeed = {};
 			datafeed[feedName] = result.winnerCode;
 			reliablyPostDataFeed(datafeed);
-			handle(result.homeTeam + " vs " + result.awayTeam + "\n on " + result.date.format("YYYY-MM-DD") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
+			handle(result.homeTeam + " vs " + result.awayTeam + "\n on " + result.date.format("YYYY-MM-DD") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
 
 		});
 	});
@@ -326,7 +326,7 @@ function getFeedStatus(peer, fixture, from_address, resultHelper, handle) {
 		});
 	} else {
 		db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
-		handle("The code for the sport oracle is: \n" + fixture.feedName + "\nEg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] + "\nResult is available 6 hours after the fixture, you will be notified when you can unlock the contract.");
+		handle("Use this code to offer a contract to a peer: \n" + fixture.feedName + "\nEg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] + "\nResult is available 6 hours after the fixture, you will be notified when the contract can be unlocked.");
 	}
 }
 
