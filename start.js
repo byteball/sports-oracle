@@ -330,6 +330,20 @@ function getFeedStatus(peer, fixture, from_address, resultHelper, handle) {
 	}
 }
 
+function getPublicCalendar() {
+	var publicCalendar = calendar;
+	for (var cat in publicCalendar) {
+		for (var championship in publicCalendar[cat]) { //we delete unneeded attributes
+			delete publicCalendar[cat][championship].resultHelper;
+			for (var fixture in publicCalendar[cat][championship].feedNames) {
+				delete publicCalendar[cat][championship].feedNames[fixture].urlResult;
+				delete publicCalendar[cat][championship].feedNames[fixture].feedName;
+			}
+		}
+	}
+	return JSON.stringify(publicCalendar);
+}
+	
 
 function notifyForDatafeedPosted(feed_name) {
 	db.query(
@@ -392,6 +406,10 @@ eventBus.on('text', function(from_address, text) {
 
 	if (text == "home") {
 		arrPeers[from_address].step = 'home';
+	}
+	
+	if (text == "/JSON") {
+		return device.sendMessageToDevice(from_address, 'text', getPublicCalendar());
 	}
 
 	for (var cat in calendar) {
