@@ -299,7 +299,7 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 			var datafeed = {};
 			datafeed[feedName] = result.winnerCode;
 			reliablyPostDataFeed(datafeed);
-			handle(result.homeTeam + " vs " + result.awayTeam + "\n on " + result.date.format("YYYY-MM-DD") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
+			handle(result.homeTeam + " vs " + result.awayTeam + "\n on " + result.date.format("YYYY-MM-DD") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
 
 		});
 	});
@@ -326,10 +326,25 @@ function getFeedStatus(peer, fixture, from_address, resultHelper, handle) {
 		});
 	} else {
 		db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
-		handle("The code for the sport oracle is: \n" + fixture.feedName + "\nEg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] + "\nResult is available 6 hours after the fixture, you will be notified when you can unlock the contract.");
+		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + fixture.feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n\n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
+		+ "\n\nResult is available 6 hours after the fixture, you will be notified when the contract can be unlocked.\n\nYou don't want to play alone ? Get a Slack invitation: http://slack.byteball.org/ and join us on #prediction_markets channel.");
 	}
 }
 
+function getPublicCalendar() {
+	var publicCalendar = calendar;
+	for (var cat in publicCalendar) {
+		for (var championship in publicCalendar[cat]) { //we delete unneeded attributes
+			delete publicCalendar[cat][championship].resultHelper;
+			for (var fixture in publicCalendar[cat][championship].feedNames) {
+				delete publicCalendar[cat][championship].feedNames[fixture].urlResult;
+				delete publicCalendar[cat][championship].feedNames[fixture].feedName;
+			}
+		}
+	}
+	return JSON.stringify(publicCalendar);
+}
+	
 
 function notifyForDatafeedPosted(feed_name) {
 	db.query(
@@ -360,7 +375,7 @@ setInterval(function() {
 							retrieveAndPostResult(row.result_url, row.feed_name, calendar[row.cat][row.championship].resultHelper, function() {});
 						});
 					} else {
-						notifications.notifyAdmin("Championship " + feedName + " not in calendar anymore, can't get result", "");
+						notifications.notifyAdmin("Championship " + row.feed_name + " not in calendar anymore, can't get result", "");
 					}
 				}
 			)
@@ -392,6 +407,10 @@ eventBus.on('text', function(from_address, text) {
 
 	if (text == "home") {
 		arrPeers[from_address].step = 'home';
+	}
+	
+	if (text == "/JSON") {
+		return device.sendMessageToDevice(from_address, 'text', getPublicCalendar());
 	}
 
 	for (var cat in calendar) {
