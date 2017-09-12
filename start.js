@@ -360,7 +360,7 @@ setInterval(function() {
 							retrieveAndPostResult(row.result_url, row.feed_name, calendar[row.cat][row.championship].resultHelper, function() {});
 						});
 					} else {
-						notifications.notifyAdmin("Championship " + feedName + " not in calendar anymore, can't get result", "");
+						notifications.notifyAdmin("Championship " + row.feed_name + " not in calendar anymore, can't get result", "");
 					}
 				}
 			)
