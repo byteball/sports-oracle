@@ -326,7 +326,8 @@ function getFeedStatus(peer, fixture, from_address, resultHelper, handle) {
 		});
 	} else {
 		db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
-		handle("Use this code to offer a contract to a peer: \n" + fixture.feedName + "\nEg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] + "\nResult is available 6 hours after the fixture, you will be notified when the contract can be unlocked.");
+		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + fixture.feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n\n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
+		+ "\n\nResult is available 6 hours after the fixture, you will be notified when the contract can be unlocked.\n\nYou don't want to play alone ? Get a Slack invitation: http://slack.byteball.org/ and join us on #prediction_markets channel.");
 	}
 }
 
