@@ -366,7 +366,7 @@ function notifyForDatafeedPosted(feed_name) {
 
 setInterval(function() {
 	db.query(
-		"SELECT * FROM asked_fixtures WHERE fixture_date < datetime('now', '-6 hours') GROUP BY feed_name", [],
+		"SELECT DISTINCT feed_name, result_url, cat, championship FROM asked_fixtures WHERE fixture_date < datetime('now', '-6 hours') GROUP BY feed_name",
 		function(rows) {
 			rows.forEach(
 				function(row) {
