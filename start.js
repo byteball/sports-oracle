@@ -13,6 +13,7 @@ var notifications = require('./notifications.js');
 var btoa = require('btoa');
 var calendar = {};
 var arrPeers = [];
+var FootballDataOrgBlacklist=[466];
 
 //------The different feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
@@ -23,7 +24,7 @@ initMySportsFeedsCom('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pu
 //initUfcInfoCom('Mixed Martial Arts', 'UFC');//not working yet
 
 //------for soccer we fetch championships available
-getCurrentChampionshipsFromFootballDataOrg(function(arrCurrentChampionShips) {
+getCurrentChampionshipsFromFootballDataOrg(FootballDataOrgBlacklist,function(arrCurrentChampionShips) {
 	arrCurrentChampionShips.forEach(function(currentChampionShip) {
 		initFootballDataOrg(currentChampionShip.category, currentChampionShip.keyword, currentChampionShip.url);
 	});
@@ -488,8 +489,7 @@ function getResponseForFeedAlreadyInDAG(homeTeamName, awayTeamName, date, result
 			"\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
 }
 
-
-function getCurrentChampionshipsFromFootballDataOrg(handle) {
+function getCurrentChampionshipsFromFootballDataOrg(blacklist, handle) {
 	var arrCompetitions = [];
 	request({
 		url: 'https://api.football-data.org/v1/competitions',
@@ -503,11 +503,13 @@ function getCurrentChampionshipsFromFootballDataOrg(handle) {
 
 		var competitions = JSON.parse(body);
 		competitions.forEach(function(competition) {
-			arrCompetitions.push({
-				category: 'Soccer',
-				keyword: competition.league,
-				url: competition._links.fixtures.href.replace('http:','https:')
-			});
+			if (blacklist.indexOf(competition.id) == -1) {
+				arrCompetitions.push({
+					category: 'Soccer',
+					keyword: competition.league,
+					url: competition._links.fixtures.href.replace('http:', 'https:')
+				});
+			}
 		});
 		handle(arrCompetitions);
 	});
