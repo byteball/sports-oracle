@@ -333,7 +333,7 @@ function getFeedStatus(peer, fixture, from_address, resultHelper, handle) {
 }
 
 function getPublicCalendar() {
-	var publicCalendar = calendar;
+	var publicCalendar = _.cloneDeep(calendar);
 	for (var cat in publicCalendar) {
 		for (var championship in publicCalendar[cat]) { //we delete unneeded attributes
 			delete publicCalendar[cat][championship].resultHelper;
