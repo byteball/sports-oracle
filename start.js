@@ -308,25 +308,25 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 
 }
 
-function getFeedStatus(peer, fixture, from_address, resultHelper, handle) {
+function getFeedStatus(cat,championship, fixture, from_address, resultHelper, handle) {
 
 	if (fixture.date.isBefore(moment().subtract(6, 'hours'))) {
 		readExistingData(fixture.feedName, function(exists, is_stable, value) {
 
 			if (exists) {
 				if (!is_stable) {
-					db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+					db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, cat, championship]);
 				}
 				handle(getResponseForFeedAlreadyInDAG(fixture.homeTeam, fixture.awayTeam, fixture.date.format("YYYY-MM-DD HH:mm:ss"), value, is_stable));
 			} else {
-				db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+				db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, cat, championship]);
 				retrieveAndPostResult(fixture.urlResult, fixture.feedName, resultHelper, function(txt) {
 					handle(txt);
 				});
 			}
 		});
 	} else {
-		db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, peer.cat, peer.step]);
+		db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, cat, championship]);
 		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + fixture.feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n\n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
 		+ "\n\nResult is available 6 hours after the fixture, you will be notified when the contract can be unlocked.\n\nYou don't want to play alone ? Get a Slack invitation: http://slack.byteball.org/ and join us on #prediction_markets channel.");
 	}
@@ -425,7 +425,7 @@ eventBus.on('text', function(from_address, text) {
 	for (var cat in calendar) {
 		for (var championship in calendar[cat]) {
 			if (calendar[cat][championship].feedNames[text]) {
-				getFeedStatus(arrPeers[from_address], calendar[cat][championship].feedNames[text], from_address, calendar[cat][championship].resultHelper, function(response) {
+				getFeedStatus(cat, championship, calendar[cat][championship].feedNames[text], from_address, calendar[cat][championship].resultHelper, function(response) {
 					device.sendMessageToDevice(from_address, 'text', response);
 				});
 				return;
