@@ -435,11 +435,11 @@ eventBus.on('text', function(from_address, text) {
 	}
 	
 	if (arrPeers[from_address].step == 'waitingValue' && conf.admins.indexOf(from_address) > -1) {
-	var datafeed = {};
-	datafeed[arrPeers[from_address].feedNametoBePosted] = text;
-	reliablyPostDataFeed(datafeed);
-	arrPeers[from_address].step = 'home';
-	return device.sendMessageToDevice(from_address, 'text', "The feedname is being posted \n➡ " + getTxtCommandButton("ok"));
+		var datafeed = {};
+		datafeed[arrPeers[from_address].feedNametoBePosted] = text;
+		reliablyPostDataFeed(datafeed);
+		arrPeers[from_address].step = 'home';
+		return device.sendMessageToDevice(from_address, 'text', "The feedname is being posted \n➡ " + getTxtCommandButton("ok"));
 	}
 	
 	if (arrPeers[from_address].step != 'waitingFeedname' && arrPeers[from_address].step != 'waitingValue') {
