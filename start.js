@@ -290,6 +290,7 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 		resultHelper.process(parsedBody, function(err, result) {
 			if (err) {
 				notifications.notifyAdmin("Result for " + feedName + " should be available but it is not", "URL concerned:" + url + "error:" + err);
+				db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
 				return handle("Result not available yet, you will be notified when available");
 			}
 			if (result.feedName !== feedName) {
