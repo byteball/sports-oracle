@@ -294,6 +294,7 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 			}
 			if (result.feedName !== feedName) {
 				notifications.notifyAdmin('Inconsistency for ' + feedName, 'Result feedname:' + result.feedName + ' Response from ' + url + ' : ' + body);
+				db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
 				return handle("Inconsistent result, admin is notified");
 			}
 
