@@ -416,12 +416,12 @@ eventBus.on('text', function(from_address, text) {
 		return device.sendMessageToDevice(from_address, 'text', getPublicCalendar());
 	}
 
-	if (text == "post" && conf.admins.indexOf(from_address) > -1) {
+	if (text == "post" && conf.admins && conf.admins.indexOf(from_address) > -1) {
 		arrPeers[from_address].step = 'waitingFeedname';
 		return device.sendMessageToDevice(from_address, 'text', "Enter feedname or return " + getTxtCommandButton("home"));
 	}
 
-	if (arrPeers[from_address].step == 'waitingFeedname' && conf.admins.indexOf(from_address) > -1) {
+	if (arrPeers[from_address].step == 'waitingFeedname' && conf.admins && conf.admins.indexOf(from_address) > -1) {
 		readExistingData(text, function(exists, is_stable, value) {
 			if (exists) {
 				arrPeers[from_address].step = 'home';
@@ -434,7 +434,7 @@ eventBus.on('text', function(from_address, text) {
 		});
 	}
 	
-	if (arrPeers[from_address].step == 'waitingValue' && conf.admins.indexOf(from_address) > -1) {
+	if (arrPeers[from_address].step == 'waitingValue' && conf.admins && conf.admins.indexOf(from_address) > -1) {
 		var datafeed = {};
 		datafeed[arrPeers[from_address].feedNametoBePosted] = text;
 		reliablyPostDataFeed(datafeed);
