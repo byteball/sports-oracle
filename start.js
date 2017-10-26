@@ -290,6 +290,7 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 		resultHelper.process(parsedBody, function(err, result) {
 			if (err) {
 				notifications.notifyAdmin("Result for " + feedName + " should be available but it is not", "URL concerned:" + url + "error:" + err);
+				db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
 				return handle("Result not available yet, you will be notified when available");
 			}
 			if (result.feedName !== feedName) {
@@ -410,47 +411,71 @@ eventBus.on('text', function(from_address, text) {
 	if (text == "home") {
 		arrPeers[from_address].step = 'home';
 	}
-	
+
 	if (text == "/JSON") {
 		return device.sendMessageToDevice(from_address, 'text', getPublicCalendar());
 	}
 
-	for (var cat in calendar) {
-		if (calendar[cat][text]) {
-			arrPeers[from_address].step = text;
-			arrPeers[from_address].cat = cat;
-			return device.sendMessageToDevice(from_address, 'text', getChampionshipInstructions(text));
-		}
+	if (text == "post" && conf.admins.indexOf(from_address) > -1) {
+		arrPeers[from_address].step = 'waitingFeedname';
+		return device.sendMessageToDevice(from_address, 'text', "Enter feedname or return " + getTxtCommandButton("home"));
 	}
 
-	for (var cat in calendar) {
-		for (var championship in calendar[cat]) {
-			if (calendar[cat][championship].feedNames[text]) {
-				getFeedStatus(cat, championship, calendar[cat][championship].feedNames[text], from_address, calendar[cat][championship].resultHelper, function(response) {
-					device.sendMessageToDevice(from_address, 'text', response);
-				});
-				return;
+	if (arrPeers[from_address].step == 'waitingFeedname' && conf.admins.indexOf(from_address) > -1) {
+		readExistingData(text, function(exists, is_stable, value) {
+			if (exists) {
+				arrPeers[from_address].step = 'home';
+				return device.sendMessageToDevice(from_address, 'text', "This feedname was already posted with " + value + " as value");
+			} else {
+				arrPeers[from_address].step = 'waitingValue';
+				arrPeers[from_address].feedNametoBePosted = text;
+				return device.sendMessageToDevice(from_address, 'text', "Enter value for " + text + " or return " + getTxtCommandButton("home"));
 			}
-
-		}
+		});
 	}
-
-
-
-	if (calendar[arrPeers[from_address].cat] && arrPeers[from_address].step != 'home') {
-
-		if (text == "last") {
-			return device.sendMessageToDevice(from_address, 'text', getFixturesBeforeNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + getChampionshipInstructions(arrPeers[from_address].step));
-		}
-		if (text == "coming") {
-			return device.sendMessageToDevice(from_address, 'text', getFixturesAfterNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + getChampionshipInstructions(arrPeers[from_address].step));
-
-		}
-		return device.sendMessageToDevice(from_address, 'text', "Search for '" + text + "' :\n" + searchFixtures(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames, text) + getChampionshipInstructions(arrPeers[from_address].step));
-
+	
+	if (arrPeers[from_address].step == 'waitingValue' && conf.admins.indexOf(from_address) > -1) {
+	var datafeed = {};
+	datafeed[arrPeers[from_address].feedNametoBePosted] = text;
+	reliablyPostDataFeed(datafeed);
+	arrPeers[from_address].step = 'home';
+	return device.sendMessageToDevice(from_address, 'text', "The feedname is being posted \n➡ " + getTxtCommandButton("ok"));
 	}
+	
+	if (arrPeers[from_address].step != 'waitingFeedname' && arrPeers[from_address].step != 'waitingValue') {
+		
+		for (var cat in calendar) {
+			if (calendar[cat][text]) {
+				arrPeers[from_address].step = text;
+				arrPeers[from_address].cat = cat;
+				return device.sendMessageToDevice(from_address, 'text', getChampionshipInstructions(text));
+			}
+		}
 
-	return device.sendMessageToDevice(from_address, 'text', getHomeInstructions());
+		for (var cat in calendar) {
+			for (var championship in calendar[cat]) {
+				if (calendar[cat][championship].feedNames[text]) {
+					getFeedStatus(cat, championship, calendar[cat][championship].feedNames[text], from_address, calendar[cat][championship].resultHelper, function(response) {
+						device.sendMessageToDevice(from_address, 'text', response);
+					});
+					return;
+				}
+			}
+		}
+
+		if (calendar[arrPeers[from_address].cat] && arrPeers[from_address].step != 'home') {
+
+			if (text == "last") {
+				return device.sendMessageToDevice(from_address, 'text', getFixturesBeforeNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + getChampionshipInstructions(arrPeers[from_address].step));
+			}
+			if (text == "coming") {
+				return device.sendMessageToDevice(from_address, 'text', getFixturesAfterNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + getChampionshipInstructions(arrPeers[from_address].step));
+			}
+			return device.sendMessageToDevice(from_address, 'text', "Search for '" + text + "' :\n" + searchFixtures(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames, text) + getChampionshipInstructions(arrPeers[from_address].step));
+		}
+
+		return device.sendMessageToDevice(from_address, 'text', getHomeInstructions());
+	}
 });
 
 function getTxtCommandButton(label, command) {
