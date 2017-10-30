@@ -602,24 +602,28 @@ function initFootballDataOrg(category, keyWord, url) {
 			calendar[category][keyWord].resultHelper = {};
 			calendar[category][keyWord].resultHelper.headers = headers;
 			calendar[category][keyWord].resultHelper.process = function(response, handle) {
-				if (response.fixture.result && response.fixture.result.goalsAwayTeam != null) {
-					let fixture = encodeFixture(response.fixture);
+				if (response.status == "FINISHED") {
+					if (response.fixture.result && response.fixture.result.goalsAwayTeam != null) {
+						let fixture = encodeFixture(response.fixture);
 
-					if (Number(response.fixture.result.goalsAwayTeam) > Number(response.fixture.result.goalsHomeTeam)) {
-						fixture.winner = fixture.homeTeam;
-						fixture.winnerCode = fixture.feedAwayTeamName;
+						if (Number(response.fixture.result.goalsAwayTeam) > Number(response.fixture.result.goalsHomeTeam)) {
+							fixture.winner = fixture.homeTeam;
+							fixture.winnerCode = fixture.feedAwayTeamName;
+						}
+						if (Number(response.fixture.result.goalsAwayTeam) < Number(response.fixture.result.goalsHomeTeam)) {
+							fixture.winner = fixture.homeTeam;
+							fixture.winnerCode = fixture.feedHomeTeamName;
+						}
+						if (Number(response.fixture.result.goalsAwayTeam) == Number(response.fixture.result.goalsHomeTeam)) {
+							fixture.winner = 'draw';
+							fixture.winnerCode = 'draw';
+						}
+						handle(null, fixture);
+					} else {
+						handle('No result in response');
 					}
-					if (Number(response.fixture.result.goalsAwayTeam) < Number(response.fixture.result.goalsHomeTeam)) {
-						fixture.winner = fixture.homeTeam;
-						fixture.winnerCode = fixture.feedHomeTeamName;
-					}
-					if (Number(response.fixture.result.goalsAwayTeam) == Number(response.fixture.result.goalsHomeTeam)) {
-						fixture.winner = 'draw';
-						fixture.winnerCode = 'draw';
-					}
-					handle(null, fixture);
 				} else {
-					handle('No result in response');
+					handle('Fixture is not finished');
 				}
 			};
 			console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
