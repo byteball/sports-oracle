@@ -379,6 +379,7 @@ setInterval(function() {
 						});
 					} else {
 						notifications.notifyAdmin("Championship " + row.feed_name + " not in calendar anymore, can't get result", "");
+						db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [row.feed_name]);
 					}
 				}
 			)
