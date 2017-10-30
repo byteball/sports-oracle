@@ -602,7 +602,7 @@ function initFootballDataOrg(category, keyWord, url) {
 			calendar[category][keyWord].resultHelper = {};
 			calendar[category][keyWord].resultHelper.headers = headers;
 			calendar[category][keyWord].resultHelper.process = function(response, handle) {
-				if (response.status == "FINISHED") {
+				if (response.fixture.status == "FINISHED") {
 					if (response.fixture.result && response.fixture.result.goalsAwayTeam != null) {
 						let fixture = encodeFixture(response.fixture);
 
