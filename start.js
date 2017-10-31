@@ -592,15 +592,19 @@ function initFootballDataOrg(category, keyWord, url) {
 		let awayTeamName = removeAbbreviations(fixture.awayTeamName);
 		let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
 		let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
+		let localDate = moment.utc(fixture.date);
+		if (fixture._links.competition.href == "http://api.football-data.org/v1/competitions/444"){ //for bresil championship we convert UTC time to local time approximately
+			localDate.subtract(4, 'hours');
+		}
 		return {
 			homeTeam: homeTeamName,
 			awayTeam: awayTeamName,
 			feedHomeTeamName: feedHomeTeamName,
 			feedAwayTeamName: feedAwayTeamName,
-			feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
+			feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + localDate.format("YYYY-MM-DD"),
 			urlResult: fixture._links.self.href.replace('http:', 'https:'),
 			date: moment.utc(fixture.date),
-			localDate: moment.utc(fixture.date) //local date is not given by FootballDataOrg, a shift in date can happen for competitions in america
+			localDate: localDate
 		}
 	}
 
