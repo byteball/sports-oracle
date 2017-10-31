@@ -14,6 +14,7 @@ var btoa = require('btoa');
 var calendar = {};
 var arrPeers = [];
 var FootballDataOrgBlacklist=[466];
+var reloadInterval = 1000*60*24;
 
 //------The different feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
@@ -555,82 +556,100 @@ function initFootballDataOrg(category, keyWord, url) {
 	var headers = {
 		'X-Auth-Token': conf.footballDataApiKey
 	};
-	request({
-			url: url,
-			headers: headers
-		}, function(error, response, body) {
-			if (error || response.statusCode !== 200) {
-				throw Error('couldn t get fixtures from footballDataOrg ' + url);
-			}
 
-			try {
-				var jsonResult = JSON.parse(body);
-				var fixtures = jsonResult.fixtures;
-			} catch (e) {
-				//	notifications.notifyAdminAboutPostingProblem('error parsing football-data response: '+e.toString()+", response: "+body);
-			}
-			if (fixtures.length == 0) {
-				throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
-			}
+	var firstCalendarLoading = true;
+	
+	calendar[category][keyWord].resultHelper = {};
+	calendar[category][keyWord].resultHelper.headers = headers;
+	calendar[category][keyWord].resultHelper.process = function(response, handle) {
+		if (response.fixture.status == "FINISHED") {
+			if (response.fixture.result && response.fixture.result.goalsAwayTeam != null) {
+				let fixture = encodeFixture(response.fixture);
 
-			function encodeFixture(fixture) {
-				let homeTeamName = removeAbbreviations(fixture.homeTeamName);
-				let awayTeamName = removeAbbreviations(fixture.awayTeamName);
-				let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
-				let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
-				return {
-					homeTeam: homeTeamName,
-					awayTeam: awayTeamName,
-					feedHomeTeamName: feedHomeTeamName,
-					feedAwayTeamName: feedAwayTeamName,
-					feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
-					urlResult: fixture._links.self.href.replace('http:','https:'),
-					date: moment.utc(fixture.date),
-					localDate: moment.utc(fixture.date) //local date is not given by FootballDataOrg, a shift in date can happen for competitions in america
+				if (Number(response.fixture.result.goalsAwayTeam) > Number(response.fixture.result.goalsHomeTeam)) {
+					fixture.winner = fixture.homeTeam;
+					fixture.winnerCode = fixture.feedAwayTeamName;
 				}
-			}
-
-			var arrGames = fixtures.map(fixture => {
-				return encodeFixture(fixture);
-			});
-
-			calendar[category][keyWord].feedNames = {};
-			arrGames.forEach(function(game) {
-				calendar[category][keyWord].feedNames[game.feedName] = game;
-			});
-
-			calendar[category][keyWord].resultHelper = {};
-			calendar[category][keyWord].resultHelper.headers = headers;
-			calendar[category][keyWord].resultHelper.process = function(response, handle) {
-				if (response.fixture.status == "FINISHED") {
-					if (response.fixture.result && response.fixture.result.goalsAwayTeam != null) {
-						let fixture = encodeFixture(response.fixture);
-
-						if (Number(response.fixture.result.goalsAwayTeam) > Number(response.fixture.result.goalsHomeTeam)) {
-							fixture.winner = fixture.homeTeam;
-							fixture.winnerCode = fixture.feedAwayTeamName;
-						}
-						if (Number(response.fixture.result.goalsAwayTeam) < Number(response.fixture.result.goalsHomeTeam)) {
-							fixture.winner = fixture.homeTeam;
-							fixture.winnerCode = fixture.feedHomeTeamName;
-						}
-						if (Number(response.fixture.result.goalsAwayTeam) == Number(response.fixture.result.goalsHomeTeam)) {
-							fixture.winner = 'draw';
-							fixture.winnerCode = 'draw';
-						}
-						handle(null, fixture);
-					} else {
-						handle('No result in response');
-					}
-				} else {
-					handle('Fixture is not finished');
+				if (Number(response.fixture.result.goalsAwayTeam) < Number(response.fixture.result.goalsHomeTeam)) {
+					fixture.winner = fixture.homeTeam;
+					fixture.winnerCode = fixture.feedHomeTeamName;
 				}
-			};
-			console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
-
+				if (Number(response.fixture.result.goalsAwayTeam) == Number(response.fixture.result.goalsHomeTeam)) {
+					fixture.winner = 'draw';
+					fixture.winnerCode = 'draw';
+				}
+				handle(null, fixture);
+			} else {
+				handle('No result in response');
+			}
+		} else {
+			handle('Fixture is not finished');
 		}
+	};
+	
+	function encodeFixture(fixture) {
+		let homeTeamName = removeAbbreviations(fixture.homeTeamName);
+		let awayTeamName = removeAbbreviations(fixture.awayTeamName);
+		let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
+		let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
+		return {
+			homeTeam: homeTeamName,
+			awayTeam: awayTeamName,
+			feedHomeTeamName: feedHomeTeamName,
+			feedAwayTeamName: feedAwayTeamName,
+			feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
+			urlResult: fixture._links.self.href.replace('http:', 'https:'),
+			date: moment.utc(fixture.date),
+			localDate: moment.utc(fixture.date) //local date is not given by FootballDataOrg, a shift in date can happen for competitions in america
+		}
+	}
 
-	);
+	function loadInCalendar() {
+		request({
+				url: url,
+				headers: headers
+			}, function(error, response, body) {
+				if (error || response.statusCode !== 200) {
+					if (firstCalendarLoading) {
+						throw Error('couldn t get fixtures from footballDataOrg ' + url);
+					} else {
+						return notifications.notifyAdmin("I couldn't get " + keyWord + " calendar today", "");
+					}
+				}
+
+				try {
+					var jsonResult = JSON.parse(body);
+					var fixtures = jsonResult.fixtures;
+				} catch (e) {
+					//	notifications.notifyAdminAboutPostingProblem('error parsing football-data response: '+e.toString()+", response: "+body);
+				}
+				if (fixtures.length == 0) {
+					if (firstCalendarLoading) {
+						throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
+					} else {
+						return notifications.notifyAdmin("I couldn't get fixtures from " + keyWord + " today", "");
+					}
+				}
+
+
+				var arrGames = fixtures.map(fixture => {
+					return encodeFixture(fixture);
+				});
+
+				calendar[category][keyWord].feedNames = {};
+				arrGames.forEach(function(game) {
+					calendar[category][keyWord].feedNames[game.feedName] = game;
+				});
+
+				firstCalendarLoading = false;
+				console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
+			}
+
+		);
+	}
+
+	loadInCalendar();
+	setInterval(loadInCalendar, reloadInterval);
 }
 
 
@@ -646,158 +665,180 @@ function initMySportsFeedsCom(category, keyWord, url) {
 	var headers = {
 		"Authorization": "Basic " + btoa(conf.MySportsFeedsUser + ":" + conf.MySportsFeedsPw)
 	};
-	request({
-		url: url + "full_game_schedule.json",
-		headers: headers
-	}, function(error, response, body) {
-		if (error || response.statusCode !== 200) {
-			throw Error("couldn't get events from MySportsFeedsCom " + url);
-		}
 
-		try {
-			var jsonResult = JSON.parse(body);
-		} catch (e) {
-			throw Error("Couldn't parse  footballDataOrg, error: " + e);
-		}
-		var fixtures = jsonResult.fullgameschedule.gameentry;
-		
-		if (fixtures.length == 0) {
-			throw Error("fixtures array empty, couldn't get fixtures from footballDataOrg");
-		}
-	
-		function convertMySportsFeedsTimeToMomentUTC(mySportsFeedsDate,mySportsFeedsTime) {
-			let UtcDate = moment.utc(mySportsFeedsDate);
-			if (mySportsFeedsTime.lastIndexOf('PM') > 0) {
-				UtcDate.add(12, 'hours');
+	var firstCalendarLoading = true;
+
+	//there are several different resultHelper function depending of sport
+
+	calendar[category][keyWord].resultHelper = {};
+	calendar[category][keyWord].resultHelper.headers = headers;
+	if (url.indexOf('mlb') > -1) {
+		calendar[category][keyWord].resultHelper.process = function(response, handle) {
+			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff('now', 'hours', true) > -5) {
+				handle('The fixture may not had enough time to finish');
+			} else {
+				if (response.gameboxscore.inningSummary.inningTotals) {
+					let fixture = encodeFixture(response.gameboxscore.game);
+
+					if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) > Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
+						fixture.winner = fixture.awayTeam;
+						fixture.winnerCode = fixture.feedAwayTeamName;
+					}
+					if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) < Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
+						fixture.winner = fixture.homeTeam;
+						fixture.winnerCode = fixture.feedHomeTeamName;
+					}
+					if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) == Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
+						fixture.winner = 'draw';
+						fixture.winnerCode = 'draw';
+					}
+					handle(null, fixture);
+				} else {
+					handle('No inningTotals in response');
+				}
 			}
-			mySportsFeedsTime.replace('PM', '').replace('AM', '');
-			mySportsFeedsTime.split(':');
-			UtcDate.add(mySportsFeedsTime[0], 'hours').add(mySportsFeedsTime[1], 'minutes');
-			UtcDate.add(5, 'hours');
-			return UtcDate;
-		}
-		
-		function encodeFixture(fixture) {
-			let homeTeamName = fixture.homeTeam.City + " " + fixture.homeTeam.Name;
-			let awayTeamName = fixture.awayTeam.City + " " + fixture.awayTeam.Name;
-			let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
-			let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
+		};
+	}
 
-			return {
-				homeTeam: homeTeamName,
-				awayTeam: awayTeamName,
-				feedHomeTeamName: feedHomeTeamName,
-				feedAwayTeamName: feedAwayTeamName,
-				feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
-				urlResult: url + "game_boxscore.json?gameid=" + fixture.id,
-				date: convertMySportsFeedsTimeToMomentUTC(fixture.date,fixture.time).utc(),
-				localDate: moment.utc(fixture.date)
+	if (url.indexOf('nba') > -1 || url.indexOf('nfl') > -1) {
+		calendar[category][keyWord].resultHelper.process = function(response, handle) {
+			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff('now', 'hours', true) > -5) {
+				handle('The fixture may not had enough time to finish');
+			} else {
+				if (response.gameboxscore.quarterSummary.quarterTotals) {
+					let fixture = encodeFixture(response.gameboxscore.game);
+
+					if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) > Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
+						fixture.winner = fixture.awayTeam;
+						fixture.winnerCode = fixture.feedAwayTeamName;
+					}
+					if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) < Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
+						fixture.winner = fixture.homeTeam;
+						fixture.winnerCode = fixture.feedHomeTeamName;
+					}
+					if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) == Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
+						fixture.winner = 'draw';
+						fixture.winnerCode = 'draw';
+					}
+					handle(null, fixture);
+				} else {
+					handle('No quarterTotals in response');
+				}
 			}
+		};
+	}
+
+	if (url.indexOf('nhl') > -1) {
+		calendar[category][keyWord].resultHelper.process = function(response, handle) {
+			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff('now', 'hours', true) > -5) {
+				handle('The fixture may not had enough time to finish');
+			} else {
+				if (response.gameboxscore.periodSummary.periodTotals) {
+					let fixture = encodeFixture(response.gameboxscore.game);
+
+					if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) > Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
+						fixture.winner = fixture.awayTeam;
+						fixture.winnerCode = fixture.feedAwayTeamName;
+					}
+					if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) < Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
+						fixture.winner = fixture.homeTeam;
+						fixture.winnerCode = fixture.feedHomeTeamName;
+					}
+					if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) == Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
+						fixture.winner = 'draw';
+						fixture.winnerCode = 'draw';
+					}
+					handle(null, fixture);
+				} else {
+					handle('No periodTotals in response');
+				}
+			}
+		};
+	}
+
+	function convertMySportsFeedsTimeToMomentUTC(mySportsFeedsDate, mySportsFeedsTime) {
+		let UtcDate = moment.utc(mySportsFeedsDate);
+		if (mySportsFeedsTime.lastIndexOf('PM') > 0) {
+			UtcDate.add(12, 'hours');
 		}
+		mySportsFeedsTime.replace('PM', '').replace('AM', '');
+		mySportsFeedsTime.split(':');
+		UtcDate.add(mySportsFeedsTime[0], 'hours').add(mySportsFeedsTime[1], 'minutes');
+		UtcDate.add(5, 'hours');
+		return UtcDate;
+	}
 
-		var arrGames = fixtures.map(fixture => {
-			return encodeFixture(fixture);
+	function encodeFixture(fixture) {
+		let homeTeamName = fixture.homeTeam.City + " " + fixture.homeTeam.Name;
+		let awayTeamName = fixture.awayTeam.City + " " + fixture.awayTeam.Name;
+		let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
+		let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
 
+		return {
+			homeTeam: homeTeamName,
+			awayTeam: awayTeamName,
+			feedHomeTeamName: feedHomeTeamName,
+			feedAwayTeamName: feedAwayTeamName,
+			feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
+			urlResult: url + "game_boxscore.json?gameid=" + fixture.id,
+			date: convertMySportsFeedsTimeToMomentUTC(fixture.date, fixture.time).utc(),
+			localDate: moment.utc(fixture.date)
+		}
+	}
+
+	function loadInCalendar() {
+		request({
+			url: url + "full_game_schedule.json",
+			headers: headers
+		}, function(error, response, body) {
+			if (error || response.statusCode !== 200) {
+				if (firstCalendarLoading) {
+					throw Error("couldn't get events from MySportsFeedsCom " + url);
+				} else {
+					return notifications.notifyAdmin("I couldn't get " + keyWord + " calendar today", "");
+				}
+			}
+
+			try {
+				var jsonResult = JSON.parse(body);
+			} catch (e) {
+				if (firstCalendarLoading) {
+					throw Error("Couldn't parse  footballDataOrg, error: " + e);
+				} else {
+					return notifications.notifyAdmin("I couldn't parse " + keyWord + "calendar today", "");
+				}
+			}
+			var fixtures = jsonResult.fullgameschedule.gameentry;
+
+			if (fixtures.length == 0) {
+				if (firstCalendarLoading) {
+					throw Error("fixtures array empty, couldn't get fixtures from footballDataOrg");
+				} else {
+					return notifications.notifyAdmin("I couldn't get fixtures for " + keyWord + " today", "");
+				}
+			}
+
+
+			var arrGames = fixtures.map(fixture => {
+				return encodeFixture(fixture);
+
+			});
+
+			calendar[category][keyWord].feedNames = {};
+			arrGames.forEach(function(game) {
+				if (typeof game === 'object') {
+					calendar[category][keyWord].feedNames[game.feedName] = game;
+				}
+			});
+
+			firstCalendarLoading = false;
+			console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
 		});
 
-		calendar[category][keyWord].feedNames = {};
-		arrGames.forEach(function(game) {
-			if (typeof game === 'object') {
-				calendar[category][keyWord].feedNames[game.feedName] = game;
-			}
-		});
-		//there are several different resultHelper function depending of sport
+	}
 
-		calendar[category][keyWord].resultHelper = {};
-		calendar[category][keyWord].resultHelper.headers = headers;
-		if (url.indexOf('mlb') > -1) {
-			calendar[category][keyWord].resultHelper.process = function(response, handle) {
-				if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff('now', 'hours' , true) > -5) {
-					handle('The fixture may not had enough time to finish');
-				} else {
-					if (response.gameboxscore.inningSummary.inningTotals) {
-						let fixture = encodeFixture(response.gameboxscore.game);
-
-						if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) > Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
-							fixture.winner = fixture.awayTeam;
-							fixture.winnerCode = fixture.feedAwayTeamName;
-						}
-						if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) < Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
-							fixture.winner = fixture.homeTeam;
-							fixture.winnerCode = fixture.feedHomeTeamName;
-						}
-						if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) == Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
-							fixture.winner = 'draw';
-							fixture.winnerCode = 'draw';
-						}
-						handle(null, fixture);
-					} else {
-						handle('No inningTotals in response');
-					}
-				}
-			};
-		}
-
-		if (url.indexOf('nba') > -1 || url.indexOf('nfl') > -1) {
-			calendar[category][keyWord].resultHelper.process = function(response, handle) {
-				if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff('now', 'hours' , true) > -5) {
-					handle('The fixture may not had enough time to finish');
-				} else {
-					if (response.gameboxscore.quarterSummary.quarterTotals) {
-						let fixture = encodeFixture(response.gameboxscore.game);
-
-						if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) > Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
-							fixture.winner = fixture.awayTeam;
-							fixture.winnerCode = fixture.feedAwayTeamName;
-						}
-						if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) < Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
-							fixture.winner = fixture.homeTeam;
-							fixture.winnerCode = fixture.feedHomeTeamName;
-						}
-						if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) == Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
-							fixture.winner = 'draw';
-							fixture.winnerCode = 'draw';
-						}
-						handle(null, fixture);
-					} else {
-						handle('No quarterTotals in response');
-					}
-				}
-			};
-		}
-
-		if (url.indexOf('nhl') > -1) {
-			calendar[category][keyWord].resultHelper.process = function(response, handle) {
-				if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff('now', 'hours' , true) > -5) {
-					handle('The fixture may not had enough time to finish');
-				} else {
-					if (response.gameboxscore.periodSummary.periodTotals) {
-						let fixture = encodeFixture(response.gameboxscore.game);
-
-						if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) > Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
-							fixture.winner = fixture.awayTeam;
-							fixture.winnerCode = fixture.feedAwayTeamName;
-						}
-						if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) < Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
-							fixture.winner = fixture.homeTeam;
-							fixture.winnerCode = fixture.feedHomeTeamName;
-						}
-						if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) == Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
-							fixture.winner = 'draw';
-							fixture.winnerCode = 'draw';
-						}
-						handle(null, fixture);
-					} else {
-						handle('No periodTotals in response');
-					}
-				}
-			};
-		}
-
-
-		console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
-	});
-
+	loadInCalendar();
+	setInterval(loadInCalendar, reloadInterval);
 }
 
 /* not finished
