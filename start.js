@@ -14,7 +14,7 @@ var btoa = require('btoa');
 var calendar = {};
 var arrPeers = [];
 var FootballDataOrgBlacklist=[466];
-var reloadInterval = 1000*60*24;
+var reloadInterval = 1000*3600*24;
 
 //------The different feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
