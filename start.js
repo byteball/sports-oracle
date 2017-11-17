@@ -648,7 +648,9 @@ function initFootballDataOrg(category, keyWord, url) {
 
 				calendar[category][keyWord].feedNames = {};
 				arrGames.forEach(function(game) {
+					if (game.date.diff(moment(),'days') > -15 && game.date.diff(moment(),'days') < 30){
 					calendar[category][keyWord].feedNames[game.feedName] = game;
+					}
 				});
 
 				firstCalendarLoading = false;
@@ -849,7 +851,9 @@ function initMySportsFeedsCom(category, keyWord, url) {
 			calendar[category][keyWord].feedNames = {};
 			arrGames.forEach(function(game) {
 				if (typeof game === 'object') {
-					calendar[category][keyWord].feedNames[game.feedName] = game;
+					if (game.date.diff(moment(),'days') > -15 && game.date.diff(moment(),'days') < 30){
+						calendar[category][keyWord].feedNames[game.feedName] = game;
+					}
 				}
 			});
 
