@@ -625,7 +625,11 @@ function initFootballDataOrg(category, keyWord, url) {
 					var jsonResult = JSON.parse(body);
 					var fixtures = jsonResult.fixtures;
 				} catch (e) {
-					//	notifications.notifyAdminAboutPostingProblem('error parsing football-data response: '+e.toString()+", response: "+body);
+					if (firstCalendarLoading) {
+						throw Error('error parsing football-data response: ' + e.toString() + ", response: " + body);
+					} else {
+						return notifications.notifyAdmin("I couldn't parse " + keyWord + " today", "");
+					}
 				}
 				if (fixtures.length == 0) {
 					if (firstCalendarLoading) {
