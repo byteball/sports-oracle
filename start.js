@@ -22,7 +22,7 @@ var reloadInterval = 1000*3600*24;
 initMySportsFeedsCom('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2017-2018-regular/');
 initMySportsFeedsCom('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2017-regular/');
 initMySportsFeedsCom('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2017-2018-regular/');
-//initUfcInfoCom('Mixed Martial Arts', 'UFC');//not working yet
+initUfcCom('Mixed Martial Arts', 'UFC');
 
 //------for soccer we fetch championships available
 getCurrentChampionshipsFromFootballDataOrg(FootballDataOrgBlacklist,function(arrCurrentChampionShips) {
@@ -298,7 +298,7 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 			var datafeed = {};
 			datafeed[feedName] = result.winnerCode;
 			reliablyPostDataFeed(datafeed);
-			handle(result.homeTeam + " vs " + result.awayTeam + "\n on " + result.date.format("YYYY-MM-DD") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
+			handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.date ? " on " + result.date.format("YYYY-MM-DD"): " " ) + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
 
 		});
 	});
@@ -863,8 +863,8 @@ function initMySportsFeedsCom(category, keyWord, url) {
 	setInterval(loadInCalendar, reloadInterval);
 }
 
-/* not finished
-function initUfcInfoCom(category, keyWord) {
+
+function initUfcCom(category, keyWord) {
     if (typeof calendar[category] === 'undefined') {
         calendar[category] = {};
     }
@@ -872,79 +872,146 @@ function initUfcInfoCom(category, keyWord) {
         calendar[category][keyWord] = {};
     }
 
-    request({
-            url: 'http://www.ufc-info.com/upcomingEvents'
+    var firstCalendarLoading = true;
+    calendar[category][keyWord].resultHelper = {};
+    calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winner. In case the match is a draw or has been rescheduled to another day, no result will be posted.";
+    calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
+        var fightFound = false;
+        response.forEach(function(fight) {
+            let fixture = encodeOnlyNames(fight);
+
+            if (expectedFeedName.indexOf(fixture.feedName) > -1) {
+                fightFound = true;
+                if (fight.fighter1_is_winner || fight.fighter2_is_winner) {
+                    if (fight.fighter1_is_winner) {
+                        fixture.winnerCode = fixture.feedHomeTeamName;
+                        fixture.winner = fixture.homeTeam;
+                        return handle(null, fixture)
+                    }
+                    if (fight.fighter2_is_winner) {
+                        fixture.winnerCode = fixture.feedAwayTeamName;
+                        fixture.winner = fixture.awayTeam;
+                        return handle(null, fixture)
+                    }
+
+                } else {
+                    return handle('this fight has no winner');
+                }
+
+            }
+
+        });
+
+        if (!fightFound) {
+            handle('Fixture not found in response');
+        }
+
+    };
+
+    function encodeOnlyNames(fight) {
+        let feedHomeTeamName = fight.fighter1_first_name.concat(fight.fighter1_last_name).toUpperCase();
+        let feedAwayTeamName = fight.fighter2_first_name.concat(fight.fighter2_last_name).toUpperCase();
+        return {
+            homeTeam: fight.fighter1_first_name + " " + fight.fighter1_last_name,
+            awayTeam: fight.fighter2_first_name + " " + fight.fighter2_last_name,
+            feedHomeTeamName: feedHomeTeamName,
+            feedAwayTeamName: feedAwayTeamName,
+            feedName: feedHomeTeamName + '_' + feedAwayTeamName
+        }
+    }
+
+
+    function loadInCalendar() {
+        request({
+            url: 'http://ufc-data-api.ufc.com/api/v3/iphone/events',
         }, function(error, response, body) {
             if (error || response.statusCode !== 200) {
-                throw Error('couldn t get events from UfcInfoCom ');
+                if (firstCalendarLoading) {
+                    throw Error('couldn t get events from UFC ');
+                } else {
+                    return notifications.notifyAdmin("I couldn't get " + keyWord + " events today", "");
+                }
             }
 
             try {
-                var arrEvents = JSON.parse(body);
-
+                var events = JSON.parse(body);
             } catch (e) {
-                throw Error('couldn t get fixtures from UfcInfoCom');
+                if (firstCalendarLoading) {
+                    throw Error('error parsing UFC events response: ' + e.toString() + ", response: " + body);
+                } else {
+                    return notifications.notifyAdmin("I couldn't parse " + keyWord + " today", "");
+                }
             }
-            if (arrEvents.length == 0) {
-                throw Error('events array empty, couldn t get events from UfcInfoCom');
+            if (events.length == 0) {
+                if (firstCalendarLoading) {
+                    throw Error('events array empty, couldn t get events from footballDataOrg');
+                } else {
+                    return notifications.notifyAdmin("I couldn't get events from " + keyWord + " today", "");
+                }
             }
-
-            arrEvents = arrEvents.upcomingEvents.concat(arrEvents.pastEvents);
-
-            //console.log(JSON.stringify(arrEvents) + "\n\n\n");
-            arrEvents.forEach(function(event) {
-
-                request({
-                    url: 'http://www.ufc-info.com/event/' + event.id
-                }, function(error, response, body) {
-
-                    if (error || response.statusCode !== 200) {
-                        throw Error('couldn t get event ' + event.id + 'from UfcInfoCom ');
-                    }
-                    try {
-                        var arrEvent = JSON.parse(body);
-
-                    } catch (e) {
-                        throw Error('couldn t get events from UfcInfoCom');
-                    }
-
-                    console.log("reading event " + event.id + "\n\n\n");
-
-                    var arrGames = arrEvent.matchups.map(matchup => {
-                        if (matchup.fighter1_last_name) {
-                            let fighter1Name = matchup.fighter1_first_name.concat(' ', matchup.fighter1_last_name);
-                            let fighter2Name = matchup.fighter2_first_name.concat(' ', matchup.fighter2_last_name);
-                            return {
-                                homeTeam: fighter1Name,
-                                awayTeam: fighter2Name,
-                                date: moment.utc(event.date),
-								localDate: moment.utc(event.date),
-                                urlResult: 'http://www.ufc-info.com/event' + event.id + "/" + matchup.id,
-                                feedName: fighter1Name.replace(/\s/g, '').toUpperCase() + '_' + fighter2Name.replace(/\s/g, '').toUpperCase() + '_' + moment.utc(event.date).format("YYYY-MM-DD")
+            calendar[category][keyWord].feedNames = {};
+            events.forEach(function(event) {
+                let eventDate = moment.utc(event.event_date);
+                if (eventDate.diff(moment(), 'days') > -10 && eventDate.diff(moment(), 'days') < 7) {
+                    request({
+                        url: 'http://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights',
+                    }, function(eventError, eventResponse, eventBody) {
+                        if (eventError || eventResponse.statusCode !== 200) {
+                            if (firstCalendarLoading) {
+                                throw Error('couldn t get event id ' + event.id + 'from UFC ');
+                            } else {
+                                return notifications.notifyAdmin('couldn t get event id ' + event.id + 'from UFC today', "");
                             }
                         }
-                    });
-                    calendar[category][keyWord].feedNames = {};
-                    arrGames.forEach(function(game) {
-                        if (typeof game === 'object') {
-                            calendar[category][keyWord].feedNames[game.feedName] = game;
+
+                        try {
+                            var fights = JSON.parse(eventBody);
+                        } catch (e) {
+                            if (firstCalendarLoading) {
+                                throw Error('error parsing UFC fights, response: ' + e.toString() + ", response: " + eventBody);
+                            } else {
+                                return notifications.notifyAdmin("I couldn't parse " + keyWord + " today", "");
+                            }
                         }
 
+                        if (fights.length == 0) {
+                            if (firstCalendarLoading) {
+                                throw Error("fights array empty, couldn t get fights from UFC event id" + event.id);
+                            } else {
+                                return notifications.notifyAdmin("fights array empty, couldn t get fights from UFC event id " + event.id + " today", "");
+                            }
+                        }
+
+                        var arrGames = fights.map(fight => {
+                            let feedNameObject = encodeOnlyNames(fight);
+                            feedNameObject.feedName += '_' + eventDate.format("YYYY-MM-DD");
+                            feedNameObject.date = moment.utc(event.event_dategmt);
+                            feedNameObject.localDate = eventDate;
+                            feedNameObject.urlResult = 'http://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights';
+                            return feedNameObject;
+                        });
+
+                        arrGames.forEach(function(game) {
+                            calendar[category][keyWord].feedNames[game.feedName] = game;
+                        });
+
+                        firstCalendarLoading = false;
+                        console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
+
+
                     });
-                    calendar[category][keyWord].resultHelper = function(url) {
 
-                    };
-
-                    console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
-                });
+                }
             });
 
-        }
 
-    );
+        });
+    }
 
+    loadInCalendar();
+    setInterval(loadInCalendar, reloadInterval);
 }
-*/
+
 
 eventBus.on('my_transactions_became_stable', function(arrUnits) {
 
