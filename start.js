@@ -682,7 +682,7 @@ function initMySportsFeedsCom(category, keyWord, url) {
 	calendar[category][keyWord].resultHelper.headers = headers;
 	if (url.indexOf('mlb') > -1) {
 		calendar[category][keyWord].resultHelper.process = function(response, handle) {
-			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff('now', 'hours', true) > -5) {
+			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff(moment(), 'hours', true) > -5) {
 				handle('The fixture may not had enough time to finish');
 			} else {
 				if (response.gameboxscore.inningSummary.inningTotals) {
@@ -710,7 +710,7 @@ function initMySportsFeedsCom(category, keyWord, url) {
 
 	if (url.indexOf('nba') > -1 || url.indexOf('nfl') > -1) {
 		calendar[category][keyWord].resultHelper.process = function(response, handle) {
-			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff('now', 'hours', true) > -5) {
+			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff(moment(), 'hours', true) > -5) {
 				handle('The fixture may not had enough time to finish');
 			} else {
 				if (response.gameboxscore.quarterSummary.quarterTotals) {
@@ -738,7 +738,7 @@ function initMySportsFeedsCom(category, keyWord, url) {
 
 	if (url.indexOf('nhl') > -1) {
 		calendar[category][keyWord].resultHelper.process = function(response, handle) {
-			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff('now', 'hours', true) > -5) {
+			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff(moment(), 'hours', true) > -5) {
 				handle('The fixture may not had enough time to finish');
 			} else {
 				if (response.gameboxscore.periodSummary.periodTotals) {
