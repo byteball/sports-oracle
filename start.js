@@ -288,16 +288,11 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 			return handle('Couldn t parse result, admin is notified');
 		}
 
-		resultHelper.process(parsedBody, function(err, result) {
+		resultHelper.process(parsedBody, feedName, function(err, result) {
 			if (err) {
-				notifications.notifyAdmin("Result for " + feedName + " should be available but it is not", "URL concerned:" + url + "error:" + err);
+				notifications.notifyAdmin("There was an error getting result for " + feedName, "URL concerned: " + url + " error: " + err);
 				db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
-				return handle("Result not available yet, you will be notified when available");
-			}
-			if (result.feedName !== feedName) {
-				notifications.notifyAdmin('Inconsistency for ' + feedName, 'Result feedname:' + result.feedName + ' Response from ' + url + ' : ' + body);
-				db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
-				return handle("Inconsistent result, admin is notified");
+				return handle("Problem getting this result, admin is notified");
 			}
 
 			var datafeed = {};
@@ -330,7 +325,8 @@ function getFeedStatus(cat,championship, fixture, from_address, resultHelper, ha
 		});
 	} else {
 		db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, cat, championship]);
-		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + fixture.feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n\n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
+		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + fixture.feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
+		+ "\n\nRules for " + championship + ": " + calendar[cat][championship].resultHelper.rules
 		+ "\n\nResult is available 6 hours after the fixture, you will be notified when the contract can be unlocked.\n\nYou don't want to play alone ? Get a Slack invitation: http://slack.byteball.org/ and join us on #prediction_markets channel.");
 	}
 }
@@ -561,27 +557,33 @@ function initFootballDataOrg(category, keyWord, url) {
 	
 	calendar[category][keyWord].resultHelper = {};
 	calendar[category][keyWord].resultHelper.headers = headers;
-	calendar[category][keyWord].resultHelper.process = function(response, handle) {
+	calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winning team after 90 minutes play. This includes added injury or stoppage time but doesn't include extra-time, penalty shootouts or golden goal. If the match is rescheduled to another day, no result will be posted.";
+	calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
 		if (response.fixture.status == "FINISHED") {
 			if (response.fixture.result && response.fixture.result.goalsAwayTeam != null) {
-				let fixture = encodeFixture(response.fixture);
-
-				if (Number(response.fixture.result.goalsAwayTeam) > Number(response.fixture.result.goalsHomeTeam)) {
-					fixture.winner = fixture.homeTeam;
-					fixture.winnerCode = fixture.feedAwayTeamName;
-				}
-				if (Number(response.fixture.result.goalsAwayTeam) < Number(response.fixture.result.goalsHomeTeam)) {
-					fixture.winner = fixture.homeTeam;
-					fixture.winnerCode = fixture.feedHomeTeamName;
-				}
-				if (Number(response.fixture.result.goalsAwayTeam) == Number(response.fixture.result.goalsHomeTeam)) {
-					fixture.winner = 'draw';
-					fixture.winnerCode = 'draw';
-				}
-				handle(null, fixture);
-			} else {
-				handle('No result in response');
-			}
+					let fixture = encodeFixture(response.fixture);
+						if (fixture.feedName === expectedFeedName){
+							if (Number(response.fixture.result.goalsAwayTeam) > Number(response.fixture.result.goalsHomeTeam)) {
+								fixture.winner = fixture.homeTeam;
+								fixture.winnerCode = fixture.feedAwayTeamName;
+							}
+							if (Number(response.fixture.result.goalsAwayTeam) < Number(response.fixture.result.goalsHomeTeam)) {
+								fixture.winner = fixture.homeTeam;
+								fixture.winnerCode = fixture.feedHomeTeamName;
+							}
+							if (Number(response.fixture.result.goalsAwayTeam) == Number(response.fixture.result.goalsHomeTeam)) {
+								fixture.winner = 'draw';
+								fixture.winnerCode = 'draw';
+							}
+							handle(null, fixture);
+							
+							} else {
+								handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);	
+							}
+					} else {
+						handle('No result in response');
+					}
+				
 		} else {
 			handle('Fixture is not finished');
 		}
@@ -681,26 +683,30 @@ function initMySportsFeedsCom(category, keyWord, url) {
 	calendar[category][keyWord].resultHelper = {};
 	calendar[category][keyWord].resultHelper.headers = headers;
 	if (url.indexOf('mlb') > -1) {
-		calendar[category][keyWord].resultHelper.process = function(response, handle) {
+		calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winning team. If the match is interrupted, the team with the higher score at time of interruption will be posted. If the match is rescheduled to another day, no result will be posted.";
+		calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
 			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff(moment(), 'hours', true) > -5) {
 				handle('The fixture may not had enough time to finish');
 			} else {
 				if (response.gameboxscore.inningSummary.inningTotals) {
 					let fixture = encodeFixture(response.gameboxscore.game);
-
-					if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) > Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
-						fixture.winner = fixture.awayTeam;
-						fixture.winnerCode = fixture.feedAwayTeamName;
+					if (fixture.feedName === expectedFeedName){
+						if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) > Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
+							fixture.winner = fixture.awayTeam;
+							fixture.winnerCode = fixture.feedAwayTeamName;
+						}
+						if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) < Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
+							fixture.winner = fixture.homeTeam;
+							fixture.winnerCode = fixture.feedHomeTeamName;
+						}
+						if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) == Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
+							fixture.winner = 'draw';
+							fixture.winnerCode = 'draw';
+						}
+						handle(null, fixture);
+					} else {
+						handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);
 					}
-					if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) < Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
-						fixture.winner = fixture.homeTeam;
-						fixture.winnerCode = fixture.feedHomeTeamName;
-					}
-					if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) == Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
-						fixture.winner = 'draw';
-						fixture.winnerCode = 'draw';
-					}
-					handle(null, fixture);
 				} else {
 					handle('No inningTotals in response');
 				}
@@ -709,26 +715,30 @@ function initMySportsFeedsCom(category, keyWord, url) {
 	}
 
 	if (url.indexOf('nba') > -1 || url.indexOf('nfl') > -1) {
-		calendar[category][keyWord].resultHelper.process = function(response, handle) {
+		calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winning team. If the match is interrupted, the team with the higher score at time of interruption will be posted. If the match is rescheduled to another day, no result will be posted.";
+		calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
 			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff(moment(), 'hours', true) > -5) {
 				handle('The fixture may not had enough time to finish');
 			} else {
 				if (response.gameboxscore.quarterSummary.quarterTotals) {
 					let fixture = encodeFixture(response.gameboxscore.game);
-
-					if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) > Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
-						fixture.winner = fixture.awayTeam;
-						fixture.winnerCode = fixture.feedAwayTeamName;
-					}
-					if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) < Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
-						fixture.winner = fixture.homeTeam;
-						fixture.winnerCode = fixture.feedHomeTeamName;
-					}
-					if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) == Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
-						fixture.winner = 'draw';
-						fixture.winnerCode = 'draw';
-					}
+					if (fixture.feedName === expectedFeedName){
+						if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) > Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
+							fixture.winner = fixture.awayTeam;
+							fixture.winnerCode = fixture.feedAwayTeamName;
+						}
+						if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) < Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
+							fixture.winner = fixture.homeTeam;
+							fixture.winnerCode = fixture.feedHomeTeamName;
+						}
+						if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) == Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
+							fixture.winner = 'draw';
+							fixture.winnerCode = 'draw';
+						}
 					handle(null, fixture);
+					} else {
+						handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);
+					}
 				} else {
 					handle('No quarterTotals in response');
 				}
@@ -737,26 +747,30 @@ function initMySportsFeedsCom(category, keyWord, url) {
 	}
 
 	if (url.indexOf('nhl') > -1) {
-		calendar[category][keyWord].resultHelper.process = function(response, handle) {
+		calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winning team for 3 x 20 minutes periods plus overtime/shootouts. If the match is interrupted, the team with the higher score at time of interruption will be posted. If the match is rescheduled to another day, no result will be posted.";
+		calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
 			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff(moment(), 'hours', true) > -5) {
 				handle('The fixture may not had enough time to finish');
 			} else {
 				if (response.gameboxscore.periodSummary.periodTotals) {
 					let fixture = encodeFixture(response.gameboxscore.game);
-
-					if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) > Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
-						fixture.winner = fixture.awayTeam;
-						fixture.winnerCode = fixture.feedAwayTeamName;
+					if (fixture.feedName === expectedFeedName){
+						if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) > Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
+							fixture.winner = fixture.awayTeam;
+							fixture.winnerCode = fixture.feedAwayTeamName;
+						}
+						if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) < Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
+							fixture.winner = fixture.homeTeam;
+							fixture.winnerCode = fixture.feedHomeTeamName;
+						}
+						if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) == Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
+							fixture.winner = 'draw';
+							fixture.winnerCode = 'draw';
+						}
+						handle(null, fixture);
+					} else {
+						handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);
 					}
-					if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) < Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
-						fixture.winner = fixture.homeTeam;
-						fixture.winnerCode = fixture.feedHomeTeamName;
-					}
-					if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) == Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
-						fixture.winner = 'draw';
-						fixture.winnerCode = 'draw';
-					}
-					handle(null, fixture);
 				} else {
 					handle('No periodTotals in response');
 				}
