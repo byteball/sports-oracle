@@ -307,27 +307,31 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 }
 
 function getFeedStatus(cat,championship, fixture, from_address, resultHelper, handle) {
+					
+	function insertIntoAskedFixtures(){
+	db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship, hours_to_wait) VALUES (?,?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, cat, championship, resultHelper.hoursToWaitBeforeGetResult]);
+	}
 
-	if (fixture.date.isBefore(moment().subtract(6, 'hours'))) {
+	if (fixture.date.isBefore(moment().subtract(resultHelper.hoursToWaitBeforeGetResult, 'hours'))) {
 		readExistingData(fixture.feedName, function(exists, is_stable, value) {
 
 			if (exists) {
 				if (!is_stable) {
-					db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, cat, championship]);
+					insertIntoAskedFixtures();
 				}
 				handle(getResponseForFeedAlreadyInDAG(fixture.homeTeam, fixture.awayTeam, fixture.date.format("YYYY-MM-DD HH:mm:ss"), value, is_stable));
 			} else {
-				db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, cat, championship]);
+				insertIntoAskedFixtures();
 				retrieveAndPostResult(fixture.urlResult, fixture.feedName, resultHelper, function(txt) {
 					handle(txt);
 				});
 			}
 		});
 	} else {
-		db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship) VALUES (?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, cat, championship]);
+		insertIntoAskedFixtures();
 		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + fixture.feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
-		+ "\n\nRules for " + championship + ": " + calendar[cat][championship].resultHelper.rules
-		+ "\n\nResult is available 6 hours after the fixture, you will be notified when the contract can be unlocked.\n\nYou don't want to play alone ? Get a Slack invitation: http://slack.byteball.org/ and join us on #prediction_markets channel.");
+		+ "\n\nRules for " + championship + ": " + resultHelper.rules
+		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nYou don't want to play alone ? Get a Slack invitation: http://slack.byteball.org/ and join us on #prediction_markets channel.");
 	}
 }
 
@@ -365,7 +369,7 @@ function notifyForDatafeedPosted(feed_name) {
 
 setInterval(function() {
 	db.query(
-		"SELECT DISTINCT feed_name, result_url, cat, championship FROM asked_fixtures WHERE fixture_date < datetime('now', '-6 hours') GROUP BY feed_name",
+		"SELECT DISTINCT feed_name, result_url, cat, championship FROM asked_fixtures WHERE fixture_date < datetime('now', '-' || hours_to_wait ||' hours') GROUP BY feed_name",
 		function(rows) {
 			rows.forEach(
 				function(row) {
@@ -557,6 +561,7 @@ function initFootballDataOrg(category, keyWord, url) {
 	
 	calendar[category][keyWord].resultHelper = {};
 	calendar[category][keyWord].resultHelper.headers = headers;
+	calendar[category][keyWord].resultHelper.hoursToWaitBeforeGetResult = 4;
 	calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winning team after 90 minutes play. This includes added injury or stoppage time but doesn't include extra-time, penalty shootouts or golden goal. If the match is rescheduled to another day, no result will be posted.";
 	calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
 		if (response.fixture.status == "FINISHED") {
@@ -685,6 +690,7 @@ function initMySportsFeedsCom(category, keyWord, url) {
 	calendar[category][keyWord].resultHelper = {};
 	calendar[category][keyWord].resultHelper.headers = headers;
 	if (url.indexOf('mlb') > -1) {
+		calendar[category][keyWord].resultHelper.hoursToWaitBeforeGetResult = 6;
 		calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winning team. If the match is interrupted, the team with the higher score at time of interruption will be posted. If the match is rescheduled to another day, no result will be posted.";
 		calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
 			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff(moment(), 'hours', true) > -5) {
@@ -717,6 +723,7 @@ function initMySportsFeedsCom(category, keyWord, url) {
 	}
 
 	if (url.indexOf('nba') > -1 || url.indexOf('nfl') > -1) {
+		calendar[category][keyWord].resultHelper.hoursToWaitBeforeGetResult = 6;
 		calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winning team. If the match is interrupted, the team with the higher score at time of interruption will be posted. If the match is rescheduled to another day, no result will be posted.";
 		calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
 			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff(moment(), 'hours', true) > -5) {
@@ -749,6 +756,7 @@ function initMySportsFeedsCom(category, keyWord, url) {
 	}
 
 	if (url.indexOf('nhl') > -1) {
+		calendar[category][keyWord].resultHelper.hoursToWaitBeforeGetResult = 6;
 		calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winning team for 3 x 20 minutes periods plus overtime/shootouts. If the match is interrupted, the team with the higher score at time of interruption will be posted. If the match is rescheduled to another day, no result will be posted.";
 		calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
 			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff(moment(), 'hours', true) > -5) {
@@ -878,7 +886,8 @@ function initUfcCom(category, keyWord) {
 
     var firstCalendarLoading = true;
     calendar[category][keyWord].resultHelper = {};
-    calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winner. In case the match is a draw or has been rescheduled to another day, no result will be posted.";
+	calendar[category][keyWord].resultHelper.hoursToWaitBeforeGetResult = 9;
+    calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winner. In case the match is a draw or has been rescheduled to another event, no result will be posted.";
     calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
         var fightFound = false;
         response.forEach(function(fight) {
