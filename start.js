@@ -309,7 +309,7 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 function getFeedStatus(cat,championship, fixture, from_address, resultHelper, handle) {
 					
 	function insertIntoAskedFixtures(){
-	db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship, hours_to_wait) VALUES (?,?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, cat, championship, resultHelper.hoursToWaitBeforeGetResult]);
+		db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship, hours_to_wait) VALUES (?,?,?,?,?,?,?,?)", [from_address, fixture.feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, cat, championship, resultHelper.hoursToWaitBeforeGetResult]);
 	}
 
 	if (fixture.date.isBefore(moment().subtract(resultHelper.hoursToWaitBeforeGetResult, 'hours'))) {
@@ -654,7 +654,7 @@ function initFootballDataOrg(category, keyWord, url) {
 				calendar[category][keyWord].feedNames = {};
 				arrGames.forEach(function(game) {
 					if (game.date.diff(moment(),'days') > -15 && game.date.diff(moment(),'days') < 30){
-					calendar[category][keyWord].feedNames[game.feedName] = game;
+						calendar[category][keyWord].feedNames[game.feedName] = game;
 					}
 				});
 
