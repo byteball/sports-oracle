@@ -402,7 +402,7 @@ eventBus.on('text', function(from_address, text) {
 	var device = require('byteballcore/device.js');
 	text = text.trim();
 	let ucText = text.toUpperCase();
-
+ 
 	if (!arrPeers[from_address]) {
 		arrPeers[from_address] = {
 			step: "home",
@@ -936,7 +936,8 @@ function initUfcCom(category, keyWord) {
 
     function loadInCalendar() {
         request({
-            url: 'http://ufc-data-api.ufc.com/api/v3/iphone/events',
+            url: 'https://ufc-data-api.ufc.com/api/v3/iphone/events',
+			rejectUnauthorized: false
         }, function(error, response, body) {
             if (error || response.statusCode !== 200) {
                 if (firstCalendarLoading) {
@@ -967,7 +968,8 @@ function initUfcCom(category, keyWord) {
                 let eventDate = moment.utc(event.event_date);
                 if (eventDate.diff(moment(), 'days') > -10 && eventDate.diff(moment(), 'days') < 7) {
                     request({
-                        url: 'http://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights',
+                        url: 'https://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights',
+						rejectUnauthorized: false
                     }, function(eventError, eventResponse, eventBody) {
                         if (eventError || eventResponse.statusCode !== 200) {
                             if (firstCalendarLoading) {
