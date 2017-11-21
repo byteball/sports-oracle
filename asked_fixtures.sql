@@ -7,6 +7,7 @@ CREATE TABLE asked_fixtures (
 	result_url TEXT NOT NULL,
 	cat TEXT NOT NULL,
 	championship TEXT NOT NULL,
+	hours_to_wait INT DEFAULT 6,
 	FOREIGN KEY (device_address) REFERENCES correspondent_devices(device_address)
 );
 
