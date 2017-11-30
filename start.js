@@ -886,7 +886,7 @@ function initUfcCom(category, keyWord) {
 
     var firstCalendarLoading = true;
     calendar[category][keyWord].resultHelper = {};
-	calendar[category][keyWord].resultHelper.hoursToWaitBeforeGetResult = 9;
+	calendar[category][keyWord].resultHelper.hoursToWaitBeforeGetResult = 12;
     calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winner. In case the match is a draw or has been rescheduled to another event, no result will be posted.";
     calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
         var fightFound = false;
@@ -966,7 +966,7 @@ function initUfcCom(category, keyWord) {
             calendar[category][keyWord].feedNames = {};
             events.forEach(function(event) {
                 let eventDate = moment.utc(event.event_date);
-                if (eventDate.diff(moment(), 'days') > -10 && eventDate.diff(moment(), 'days') < 7) {
+                if (eventDate.diff(moment(), 'days') > -10 && eventDate.diff(moment(), 'days') < 7 && event.event_time_zone_text == 'ETPT' && event.event_time_text != '') {
                     request({
                         url: 'https://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights',
 						rejectUnauthorized: false
@@ -996,12 +996,36 @@ function initUfcCom(category, keyWord) {
                                 return notifications.notifyAdmin("fights array empty, couldn t get fights from UFC event id " + event.id + " today", "");
                             }
                         }
-
+						
+						var arrayLocalTimes = event.event_time_text.split('/');
+						if (arrayLocalTimes.length !=2 || (arrayLocalTimes[0].indexOf('AM') == -1 && arrayLocalTimes[0].indexOf('PM') == -1)) {
+						 if (firstCalendarLoading) {
+									throw Error("Unusual date format for UFC event " + event.id);
+								} else {
+									return notifications.notifyAdmin("I constated an unusual date format for UFC event id " + event.id + " today", "");
+								}							
+						}
+						
+						var timeShift = 5;
+						if (arrayLocalTimes[0].indexOf('PM') > -1) {
+						timeShift = 17;
+						}
+						
+						timeShift+= Number(arrayLocalTimes[0].replace('PM','').replace('AM',''));
+						
+						if (eventDate.isDST()){
+						timeShift--;
+						}
+						timeShift-=2; // event can begin 2 hours before announced time due to preliminary fights
+						
+						var UTCtime = _.cloneDeep(eventDate);
+						UTCtime.add(timeShift, 'hours');
+							console.log('\n' +UTCtime + '\n');
                         var arrGames = fights.map(fight => {
                             let feedNameObject = encodeOnlyNames(fight);
                             feedNameObject.feedName += '_' + eventDate.format("YYYY-MM-DD");
-                            feedNameObject.date = moment.utc(event.event_dategmt);
-                            feedNameObject.localDate = eventDate;
+							feedNameObject.localDate = eventDate;
+                            feedNameObject.date = UTCtime;
                             feedNameObject.urlResult = 'http://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights';
                             return feedNameObject;
                         });
