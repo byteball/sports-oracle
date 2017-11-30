@@ -1020,14 +1020,13 @@ function initUfcCom(category, keyWord) {
 						
 						var UTCtime = _.cloneDeep(eventDate);
 						UTCtime.add(timeShift, 'hours');
-							console.log('\n' +UTCtime + '\n');
                         var arrGames = fights.map(fight => {
-                            let feedNameObject = encodeOnlyNames(fight);
-                            feedNameObject.feedName += '_' + eventDate.format("YYYY-MM-DD");
+							let feedNameObject = encodeOnlyNames(fight);
+							feedNameObject.feedName += '_' + eventDate.format("YYYY-MM-DD");
 							feedNameObject.localDate = eventDate;
-                            feedNameObject.date = UTCtime;
-                            feedNameObject.urlResult = 'http://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights';
-                            return feedNameObject;
+							feedNameObject.date = UTCtime;
+							feedNameObject.urlResult = 'http://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights';
+							return feedNameObject;
                         });
 
                         arrGames.forEach(function(game) {
