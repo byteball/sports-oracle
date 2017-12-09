@@ -21,7 +21,7 @@ var reloadInterval = 1000*3600*24;
 //initMySportsFeedsCom('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2017-regular/');
 initMySportsFeedsCom('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2017-2018-regular/');
 initMySportsFeedsCom('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2017-regular/');
-//initMySportsFeedsCom('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2017-2018-regular/');
+initMySportsFeedsCom('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2017-2018-regular/');
 initUfcCom('Mixed Martial Arts', 'UFC');
 
 //------for soccer we fetch championships available
@@ -789,13 +789,7 @@ function initMySportsFeedsCom(category, keyWord, url) {
 	}
 
 	function convertMySportsFeedsTimeToMomentUTC(mySportsFeedsDate, mySportsFeedsTime) {
-		let UtcDate = moment.utc(mySportsFeedsDate);
-		if (mySportsFeedsTime.lastIndexOf('PM') > 0) {
-			UtcDate.add(12, 'hours');
-		}
-		mySportsFeedsTime.replace('PM', '').replace('AM', '');
-		mySportsFeedsTime.split(':');
-		UtcDate.add(mySportsFeedsTime[0], 'hours').add(mySportsFeedsTime[1], 'minutes');
+		let UtcDate = moment.utc(mySportsFeedsDate + ' ' + mySportsFeedsTime,'YYYY-MM-DD hh:mma');
 		UtcDate.add(5, 'hours');
 		return UtcDate;
 	}
@@ -1007,19 +1001,15 @@ function initUfcCom(category, keyWord) {
 						}
 						
 						var timeShift = 5;
-						if (arrayLocalTimes[0].indexOf('PM') > -1) {
-						timeShift = 17;
-						}
-						
-						timeShift+= Number(arrayLocalTimes[0].replace('PM','').replace('AM',''));
 						
 						if (eventDate.isDST()){
-						timeShift--;
+							timeShift--;
 						}
 						timeShift-=2; // event can begin 2 hours before announced time due to preliminary fights
 						
-						var UTCtime = _.cloneDeep(eventDate);
+						var UTCtime = moment.utc(eventDate.format("YYYY-MM-DD") + ' ' + arrayLocalTimes[0],['YYYY-MM-DD hha','YYYY-MM-DD hh:mma']);
 						UTCtime.add(timeShift, 'hours');
+						
                         var arrGames = fights.map(fight => {
 							let feedNameObject = encodeOnlyNames(fight);
 							feedNameObject.feedName += '_' + eventDate.format("YYYY-MM-DD");
