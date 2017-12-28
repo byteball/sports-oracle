@@ -289,37 +289,35 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 		}
 
 		resultHelper.process(parsedBody, feedName, function(err, result) {
-		    if (err) {
-		        notifications.notifyAdmin("There was an error getting result for " + feedName, "URL concerned: " + url + " error: " + err);
-		        db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
-		        return handle("Problem getting this result, admin is notified");
-		    }
+			if (err) {
+				notifications.notifyAdmin("There was an error getting result for " + feedName, "URL concerned: " + url + " error: " + err);
+				db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
+				return handle("Problem getting this result, admin is notified");
+			}
 
-		    checkUsingSecondSource(championship, feedName, result.date, result.winnerCode, function(error, isOK) {
+			checkUsingSecondSource(championship, feedName, result.date, result.winnerCode, function(error, isOK) {
 
-		    	if (error) {
-		    		if (isCriticalError) {
-		    			db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
-		    		}
-		    		return handle(error.msg);
+				if (error) {
+					if (isCriticalError) {
+						db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
+					}
+					return handle(error.msg);
 
-		    	}
+				}
 
-		    	if (isOK) {
-		    		var datafeed = {};
-		    		datafeed[feedName] = result.winnerCode;
-		    		reliablyPostDataFeed(datafeed);
-		    		return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.date ? " on " + result.date.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
-		    	} else {
-		    		db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
-		    		notifications.notifyAdmin("Check failed for " + feedName, " ");
-		    		return handle("Inconsistence found for result, admin is notified");
+				if (isOK) {
+					var datafeed = {};
+					datafeed[feedName] = result.winnerCode;
+					reliablyPostDataFeed(datafeed);
+					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.date ? " on " + result.date.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
+				} else {
+					db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
+					notifications.notifyAdmin("Check failed for " + feedName, " ");
+					return handle("Inconsistency found for result, admin is notified");
 
-		    	}
+				}
 
-
-		    });
-
+			});
 
 		});
 	});
@@ -894,173 +892,173 @@ function initMySportsFeedsCom(category, keyWord, url) {
 
 
 function initUfcCom(category, keyWord) {
-    if (typeof calendar[category] === 'undefined') {
-        calendar[category] = {};
-    }
-    if (typeof calendar[category][keyWord] === 'undefined') {
-        calendar[category][keyWord] = {};
-    }
+	if (typeof calendar[category] === 'undefined') {
+		calendar[category] = {};
+	}
+	if (typeof calendar[category][keyWord] === 'undefined') {
+		calendar[category][keyWord] = {};
+	}
 
-    var firstCalendarLoading = true;
-    calendar[category][keyWord].resultHelper = {};
+	var firstCalendarLoading = true;
+	calendar[category][keyWord].resultHelper = {};
 	calendar[category][keyWord].resultHelper.hoursToWaitBeforeGetResult = 12;
-    calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winner. In case the match is a draw or has been rescheduled to another event, no result will be posted.";
-    calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
-        var fightFound = false;
-        response.forEach(function(fight) {
-            let fixture = encodeOnlyNames(fight);
+	calendar[category][keyWord].resultHelper.rules = "The oracle will post the name of winner. In case the match is a draw or has been rescheduled to another event, no result will be posted.";
+	calendar[category][keyWord].resultHelper.process = function(response, expectedFeedName, handle) {
+		var fightFound = false;
+		response.forEach(function(fight) {
+			let fixture = encodeOnlyNames(fight);
 
-            if (expectedFeedName.indexOf(fixture.feedName) > -1) {
-                fightFound = true;
-                if (fight.fighter1_is_winner || fight.fighter2_is_winner) {
-                    if (fight.fighter1_is_winner) {
-                        fixture.winnerCode = fixture.feedHomeTeamName;
-                        fixture.winner = fixture.homeTeam;
-                        return handle(null, fixture)
-                    }
-                    if (fight.fighter2_is_winner) {
-                        fixture.winnerCode = fixture.feedAwayTeamName;
-                        fixture.winner = fixture.awayTeam;
-                        return handle(null, fixture)
-                    }
+			if (expectedFeedName.indexOf(fixture.feedName) > -1) {
+				fightFound = true;
+				if (fight.fighter1_is_winner || fight.fighter2_is_winner) {
+					if (fight.fighter1_is_winner) {
+						fixture.winnerCode = fixture.feedHomeTeamName;
+						fixture.winner = fixture.homeTeam;
+						return handle(null, fixture)
+					}
+					if (fight.fighter2_is_winner) {
+						fixture.winnerCode = fixture.feedAwayTeamName;
+						fixture.winner = fixture.awayTeam;
+						return handle(null, fixture)
+					}
 
-                } else {
-                    return handle('this fight has no winner');
-                }
+				} else {
+					return handle('this fight has no winner');
+				}
 
-            }
+			}
 
-        });
+		});
 
-        if (!fightFound) {
-            handle('Fixture not found in response');
-        }
+		if (!fightFound) {
+			handle('Fixture not found in response');
+		}
 
-    };
+	};
 
-    function encodeOnlyNames(fight) {
-        let feedHomeTeamName = fight.fighter1_first_name.concat(fight.fighter1_last_name).toUpperCase();
-        let feedAwayTeamName = fight.fighter2_first_name.concat(fight.fighter2_last_name).toUpperCase();
-        return {
-            homeTeam: fight.fighter1_first_name + " " + fight.fighter1_last_name,
-            awayTeam: fight.fighter2_first_name + " " + fight.fighter2_last_name,
-            feedHomeTeamName: feedHomeTeamName,
-            feedAwayTeamName: feedAwayTeamName,
-            feedName: feedHomeTeamName + '_' + feedAwayTeamName
-        }
-    }
+	function encodeOnlyNames(fight) {
+		let feedHomeTeamName = fight.fighter1_first_name.concat(fight.fighter1_last_name).toUpperCase();
+		let feedAwayTeamName = fight.fighter2_first_name.concat(fight.fighter2_last_name).toUpperCase();
+		return {
+			homeTeam: fight.fighter1_first_name + " " + fight.fighter1_last_name,
+			awayTeam: fight.fighter2_first_name + " " + fight.fighter2_last_name,
+			feedHomeTeamName: feedHomeTeamName,
+			feedAwayTeamName: feedAwayTeamName,
+			feedName: feedHomeTeamName + '_' + feedAwayTeamName
+		}
+	}
 
 
-    function loadInCalendar() {
-        request({
-            url: 'https://ufc-data-api.ufc.com/api/v3/iphone/events',
+	function loadInCalendar() {
+		request({
+			url: 'https://ufc-data-api.ufc.com/api/v3/iphone/events',
 			rejectUnauthorized: false
-        }, function(error, response, body) {
-            if (error || response.statusCode !== 200) {
-                if (firstCalendarLoading) {
-                    throw Error('couldn t get events from UFC ');
-                } else {
-                    return notifications.notifyAdmin("I couldn't get " + keyWord + " events today", "");
-                }
-            }
+		}, function(error, response, body) {
+			if (error || response.statusCode !== 200) {
+				if (firstCalendarLoading) {
+					throw Error('couldn t get events from UFC ');
+				} else {
+					return notifications.notifyAdmin("I couldn't get " + keyWord + " events today", "");
+				}
+			}
 
-            try {
-                var events = JSON.parse(body);
-            } catch (e) {
-                if (firstCalendarLoading) {
-                    throw Error('error parsing UFC events response: ' + e.toString() + ", response: " + body);
-                } else {
-                    return notifications.notifyAdmin("I couldn't parse " + keyWord + " today", "");
-                }
-            }
-            if (events.length == 0) {
-                if (firstCalendarLoading) {
-                    throw Error('events array empty, couldn t get events from footballDataOrg');
-                } else {
-                    return notifications.notifyAdmin("I couldn't get events from " + keyWord + " today", "");
-                }
-            }
-            calendar[category][keyWord].feedNames = {};
-            events.forEach(function(event) {
-                let eventDate = moment.utc(event.event_date);
-                if (eventDate.diff(moment(), 'days') > -10 && eventDate.diff(moment(), 'days') < 7 && event.event_time_zone_text == 'ETPT' && event.event_time_text != '') {
-                    request({
-                        url: 'https://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights',
+			try {
+				var events = JSON.parse(body);
+			} catch (e) {
+				if (firstCalendarLoading) {
+					throw Error('error parsing UFC events response: ' + e.toString() + ", response: " + body);
+				} else {
+					return notifications.notifyAdmin("I couldn't parse " + keyWord + " today", "");
+				}
+			}
+			if (events.length == 0) {
+				if (firstCalendarLoading) {
+					throw Error('events array empty, couldn t get events from footballDataOrg');
+				} else {
+					return notifications.notifyAdmin("I couldn't get events from " + keyWord + " today", "");
+				}
+			}
+			calendar[category][keyWord].feedNames = {};
+			events.forEach(function(event) {
+				let eventDate = moment.utc(event.event_date);
+				if (eventDate.diff(moment(), 'days') > -10 && eventDate.diff(moment(), 'days') < 7 && event.event_time_zone_text == 'ETPT' && event.event_time_text != '') {
+					request({
+						url: 'https://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights',
 						rejectUnauthorized: false
-                    }, function(eventError, eventResponse, eventBody) {
-                        if (eventError || eventResponse.statusCode !== 200) {
-                            if (firstCalendarLoading) {
-                                throw Error('couldn t get event id ' + event.id + 'from UFC ');
-                            } else {
-                                return notifications.notifyAdmin('couldn t get event id ' + event.id + 'from UFC today', "");
-                            }
-                        }
-
-                        try {
-                            var fights = JSON.parse(eventBody);
-                        } catch (e) {
-                            if (firstCalendarLoading) {
-                                throw Error('error parsing UFC fights, response: ' + e.toString() + ", response: " + eventBody);
-                            } else {
-                                return notifications.notifyAdmin("I couldn't parse " + keyWord + " today", "");
-                            }
-                        }
-
-                        if (fights.length == 0) {
-                            if (firstCalendarLoading) {
-                                throw Error("fights array empty, couldn t get fights from UFC event id" + event.id);
-                            } else {
-                                return notifications.notifyAdmin("fights array empty, couldn t get fights from UFC event id " + event.id + " today", "");
-                            }
-                        }
-						
-						var arrayLocalTimes = event.event_time_text.split('/');
-						if (arrayLocalTimes.length !=2 || (arrayLocalTimes[0].indexOf('AM') == -1 && arrayLocalTimes[0].indexOf('PM') == -1)) {
-						 if (firstCalendarLoading) {
-									throw Error("Unusual date format for UFC event " + event.id);
-								} else {
-									return notifications.notifyAdmin("I constated an unusual date format for UFC event id " + event.id + " today", "");
-								}							
+					}, function(eventError, eventResponse, eventBody) {
+						if (eventError || eventResponse.statusCode !== 200) {
+							if (firstCalendarLoading) {
+								throw Error('couldn t get event id ' + event.id + 'from UFC ');
+							} else {
+								return notifications.notifyAdmin('couldn t get event id ' + event.id + 'from UFC today', "");
+							}
 						}
-						
+
+						try {
+							var fights = JSON.parse(eventBody);
+						} catch (e) {
+							if (firstCalendarLoading) {
+								throw Error('error parsing UFC fights, response: ' + e.toString() + ", response: " + eventBody);
+							} else {
+								return notifications.notifyAdmin("I couldn't parse " + keyWord + " today", "");
+							}
+						}
+
+						if (fights.length == 0) {
+							if (firstCalendarLoading) {
+								throw Error("fights array empty, couldn t get fights from UFC event id" + event.id);
+							} else {
+								return notifications.notifyAdmin("fights array empty, couldn t get fights from UFC event id " + event.id + " today", "");
+							}
+						}
+
+						var arrayLocalTimes = event.event_time_text.split('/');
+						if (arrayLocalTimes.length != 2 || (arrayLocalTimes[0].indexOf('AM') == -1 && arrayLocalTimes[0].indexOf('PM') == -1)) {
+							if (firstCalendarLoading) {
+								throw Error("Unusual date format for UFC event " + event.id);
+							} else {
+								return notifications.notifyAdmin("I constated an unusual date format for UFC event id " + event.id + " today", "");
+							}
+						}
+
 						var timeShift = 5;
-						
-						if (eventDate.isDST()){
+
+						if (eventDate.isDST()) {
 							timeShift--;
 						}
-						timeShift-=2; // event can begin 2 hours before announced time due to preliminary fights
-						
-						var UTCtime = moment.utc(eventDate.format("YYYY-MM-DD") + ' ' + arrayLocalTimes[0],['YYYY-MM-DD hha','YYYY-MM-DD hh:mma']);
+						timeShift -= 2; // event can begin 2 hours before announced time due to preliminary fights
+
+						var UTCtime = moment.utc(eventDate.format("YYYY-MM-DD") + ' ' + arrayLocalTimes[0], ['YYYY-MM-DD hha', 'YYYY-MM-DD hh:mma']);
 						UTCtime.add(timeShift, 'hours');
-						
-                        var arrGames = fights.map(fight => {
+
+						var arrGames = fights.map(fight => {
 							let feedNameObject = encodeOnlyNames(fight);
 							feedNameObject.feedName += '_' + eventDate.format("YYYY-MM-DD");
 							feedNameObject.localDate = eventDate;
 							feedNameObject.date = UTCtime;
 							feedNameObject.urlResult = 'http://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights';
 							return feedNameObject;
-                        });
+						});
 
-                        arrGames.forEach(function(game) {
-                            calendar[category][keyWord].feedNames[game.feedName] = game;
-                        });
+						arrGames.forEach(function(game) {
+							calendar[category][keyWord].feedNames[game.feedName] = game;
+						});
 
-                        firstCalendarLoading = false;
-                        console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
-
-
-                    });
-
-                }
-            });
+						firstCalendarLoading = false;
+						console.log(JSON.stringify(calendar[category][keyWord]) + "\n\n\n");
 
 
-        });
-    }
+					});
 
-    loadInCalendar();
-    setInterval(loadInCalendar, reloadInterval);
+				}
+			});
+
+
+		});
+	}
+
+	loadInCalendar();
+	setInterval(loadInCalendar, reloadInterval);
 }
 
 function checkUsingSecondSource(championship, feedName, UTCdate, result, handle) {
@@ -1081,7 +1079,6 @@ function checkUsingSecondSource(championship, feedName, UTCdate, result, handle)
 
 
 function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
-
 
 	function findAndCheckFixture(arrayEventIds) {
 		if (arrayEventIds.length == 0) {
@@ -1110,7 +1107,6 @@ function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
 					isCriticalError: true
 				});
 			}
-
 
 			if (parsedBody.status && parsedBody.status == "final") {
 
