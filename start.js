@@ -270,7 +270,7 @@ function searchFixtures(championship, search) {
 }
 
 
-function retrieveAndPostResult(url, feedName, resultHelper, handle) {
+function retrieveAndPostResult(url, championship, feedName, resultHelper, handle) {
 
 	request({
 		url: url,
@@ -289,16 +289,37 @@ function retrieveAndPostResult(url, feedName, resultHelper, handle) {
 		}
 
 		resultHelper.process(parsedBody, feedName, function(err, result) {
-			if (err) {
-				notifications.notifyAdmin("There was an error getting result for " + feedName, "URL concerned: " + url + " error: " + err);
-				db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
-				return handle("Problem getting this result, admin is notified");
-			}
+		    if (err) {
+		        notifications.notifyAdmin("There was an error getting result for " + feedName, "URL concerned: " + url + " error: " + err);
+		        db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
+		        return handle("Problem getting this result, admin is notified");
+		    }
 
-			var datafeed = {};
-			datafeed[feedName] = result.winnerCode;
-			reliablyPostDataFeed(datafeed);
-			handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.date ? " on " + result.date.format("YYYY-MM-DD"): " " ) + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
+		    checkUsingSecondSource(championship, feedName, result.date, result.winnerCode, function(error, isOK) {
+				
+		        if (error) {
+		            if (isCriticalError) {
+		                db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
+		            }
+		            return handle(error.msg);
+
+		        }
+
+		        if (isOK) {
+		            var datafeed = {};
+		            datafeed[feedName] = result.winnerCode;
+		            reliablyPostDataFeed(datafeed);
+		            return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.date ? " on " + result.date.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
+		        } else {
+		            db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
+		            notifications.notifyAdmin("Check failed for " + feedName, " ");
+		            return handle("Inconsistence found for result, admin is notified");
+
+		        }
+
+
+		    });
+
 
 		});
 	});
@@ -322,7 +343,9 @@ function getFeedStatus(cat,championship, fixture, from_address, resultHelper, ha
 				handle(getResponseForFeedAlreadyInDAG(fixture.homeTeam, fixture.awayTeam, fixture.date.format("YYYY-MM-DD HH:mm:ss"), value, is_stable));
 			} else {
 				insertIntoAskedFixtures();
-				retrieveAndPostResult(fixture.urlResult, fixture.feedName, resultHelper, function(txt) {
+				var device = require('byteballcore/device.js');
+				device.sendMessageToDevice(from_address, 'text', "Result is being retrieved, please wait.");
+				retrieveAndPostResult(fixture.urlResult, championship, fixture.feedName, resultHelper, function(txt) {
 					handle(txt);
 				});
 			}
@@ -376,7 +399,7 @@ setInterval(function() {
 					if (calendar[row.cat] && calendar[row.cat][row.championship]) {
 						readExistingData(row.feed_name, function(exists) {
 							if(!exists)
-							retrieveAndPostResult(row.result_url, row.feed_name, calendar[row.cat][row.championship].resultHelper, function() {});
+							retrieveAndPostResult(row.result_url, row.championship, row.feed_name, calendar[row.cat][row.championship].resultHelper, function() {});
 						});
 					} else {
 						notifications.notifyAdmin("Championship " + row.feed_name + " not in calendar anymore, can't get result", "");
@@ -1040,6 +1063,169 @@ function initUfcCom(category, keyWord) {
     setInterval(loadInCalendar, reloadInterval);
 }
 
+function checkUsingSecondSource(championship, feedName, UTCdate, result, handle) {
+
+    if (championship == 'NBA' || championship == 'MLB' || championship == 'NHL' || championship == 'NFL') {
+
+        checkUsingTheScore(championship, feedName, UTCdate, result, function(error, isOK) {
+            return handle(error, isOK);
+
+        });
+
+
+    } else {
+        return handle(null, true);
+    }
+
+}
+
+
+function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
+
+
+    function findAndCheckFixture(arrayEventIds) {
+		if (arrayEventIds.length==0){
+			notifications.notifyAdmin("arrayEventIds empty when checking " + feedName, ' ');
+			return handle({
+            msg: "Couldn't check result from second source of data, admin is notified",
+            isCriticalError: true
+            });
+		}
+        request({
+            url: 'https://api.thescore.com/' + championship.toLowerCase() + '/events/' + arrayEventIds[0]
+        }, function(error, response, body) {
+            if (error || response.statusCode !== 200) {
+                return handle({
+                    msg: "Error, can't get info from data provider",
+                    isCriticalError: false
+                });
+            }
+            try {
+                var parsedBody = JSON.parse(body);
+
+            } catch (e) {
+                notifications.notifyAdmin("Result for event id " + arrayEventIds[0] + " can't be parsed from thescore.com", body);
+                return handle({
+                    msg: "Couldn't parse result from second source of data, admin is notified",
+                    isCriticalError: true
+                });
+            }
+
+
+            if (parsedBody.status && parsedBody.status == "final") {
+
+                let feedHomeTeamName = parsedBody.home_team.full_name.replace(/\s/g, '').toUpperCase();
+                let feedAwayTeamName = parsedBody.away_team.full_name.replace(/\s/g, '').toUpperCase();
+
+                if ((feedHomeTeamName + '_' + feedAwayTeamName) === feedName.slice(0, -11)) {
+
+                    if (parsedBody.box_score.score.home.score > parsedBody.box_score.score.away.score && result == feedHomeTeamName) {
+                        return handle(null, true);
+                    }
+                    if (parsedBody.box_score.score.home.score < parsedBody.box_score.score.away.score && result == feedAwayTeamName) {
+                        return handle(null, true);
+                    }
+                    if (parsedBody.box_score.score.home.score == parsedBody.box_score.score.away.score && result == 'draw') {
+                        return handle(null, true);
+                    }
+
+                    return handle(null, false);
+
+
+                } else {
+
+                    if (arrayEventIds.length > 1) {
+                        return findAndCheckFixture(arrayEventIds.splice(1));
+                    } else {
+                        notifications.notifyAdmin("Couldn't check " + feedName + " from thescore", ' ');
+                        return handle({
+                            msg: "Couldn't parse result from second source of data, admin is notified",
+                            isCriticalError: true
+                        });
+
+                    }
+
+                }
+
+
+            } else {
+                notifications.notifyAdmin("Wrong JSON format or result not final from thescore.com for event id " + arrayEventIds[0], JSON.stringify(parsedBody));
+                return handle({
+                    msg: "Couldn't parse result from second source of data, admin is notified",
+                    isCriticalError: true
+                });
+
+            }
+
+        });
+
+    }
+
+    request({
+        url: 'https://api.thescore.com/' + championship.toLowerCase() + '/schedule'
+    }, function(error, response, body) {
+        if (error || response.statusCode !== 200) {
+            return handle({
+                msg: "Error, can't get info from data provider",
+                isCriticalError: false
+            });
+        }
+        try {
+            var parsedBody = JSON.parse(body);
+
+        } catch (e) {
+            notifications.notifyAdmin("Result for " + feedName + " can't be parsed from thescore.com" + "\n" + body);
+            return handle({
+                msg: "Couldn't parse result from second source of data, admin is notified",
+                isCriticalError: true
+            });
+
+        }
+
+
+        if (parsedBody.current_season) {
+            let dayOrWeekFound = false;
+            parsedBody.current_season.forEach(function(dayOrWeek) {
+
+                if (championship == 'NFL') {
+
+                    if (moment(dayOrWeek.start_date).isSameOrBefore(UTCdate) && moment(dayOrWeek.end_date).isSameOrAfter(UTCdate)) {
+                        findAndCheckFixture(dayOrWeek.event_ids, feedName);
+                        dayOrWeekFound = true;
+                    }
+
+
+                } else {
+
+                    if (dayOrWeek.id === UTCdate.format("YYYY-MM-DD")) {
+                        findAndCheckFixture(dayOrWeek.event_ids, feedName);
+                        dayOrWeekFound = true;
+                    }
+                }
+
+            });
+
+            if (!dayOrWeekFound) {
+                notifications.notifyAdmin("Day not found for " + feedName, JSON.stringify(parsedBody));
+                return handle({
+                    msg: "Couldn't parse result from second source of data, admin is notified",
+                    isCriticalError: true
+                });
+            }
+
+
+        } else {
+            notifications.notifyAdmin("Wrong JSON format from thescore.com for " + championship, JSON.stringify(parsedBody));
+            return handle({
+                msg: "Couldn't parse result from second source of data, admin is notified",
+                isCriticalError: true
+            });
+        }
+
+
+    });
+
+}
 
 eventBus.on('my_transactions_became_stable', function(arrUnits) {
 
