@@ -298,7 +298,7 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 			checkUsingSecondSource(championship, feedName, result.date, result.winnerCode, function(error, isOK) {
 
 				if (error) {
-					if (isCriticalError) {
+					if (error.isCriticalError) {
 						db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
 					}
 					return handle(error.msg);
