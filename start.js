@@ -1127,31 +1127,20 @@ function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
 
 					return handle(null, false);
 
-
-				} else {
-
-					if (arrayEventIds.length > 1) {
-						return findAndCheckFixture(arrayEventIds.splice(1));
-					} else {
-						notifications.notifyAdmin("Couldn't check " + feedName + " from thescore", ' ');
-						return handle({
-							msg: "Couldn't parse result from second source of data, admin is notified",
-							isCriticalError: true
-						});
-
-					}
-
 				}
+			}
 
-
+			if (arrayEventIds.length > 1) {
+				return findAndCheckFixture(arrayEventIds.splice(1));
 			} else {
-				notifications.notifyAdmin("Wrong JSON format or result not final from thescore.com for event id " + arrayEventIds[0], JSON.stringify(parsedBody));
+				notifications.notifyAdmin("Couldn't check " + feedName + " from thescore", ' ');
 				return handle({
 					msg: "Couldn't parse result from second source of data, admin is notified",
 					isCriticalError: true
 				});
 
 			}
+
 
 		});
 
