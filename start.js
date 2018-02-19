@@ -317,7 +317,7 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 					var datafeed = {};
 					datafeed[feedName] = result.winnerCode;
 					reliablyPostDataFeed(datafeed);
-					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.date ? " on " + result.date.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
+					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.localDate ? " on " + result.localDate.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
 				} else {
 					db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
 					notifications.notifyAdmin("Check failed for " + feedName, " ");
@@ -598,7 +598,7 @@ function initFootballDataOrg(category, keyWord, url) {
 					let fixture = encodeFixture(response.fixture);
 						if (fixture.feedName === expectedFeedName){
 							if (Number(response.fixture.result.goalsAwayTeam) > Number(response.fixture.result.goalsHomeTeam)) {
-								fixture.winner = fixture.AwayTeam;
+								fixture.winner = fixture.awayTeam;
 								fixture.winnerCode = fixture.feedAwayTeamName;
 							}
 							if (Number(response.fixture.result.goalsAwayTeam) < Number(response.fixture.result.goalsHomeTeam)) {
