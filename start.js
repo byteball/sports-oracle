@@ -10,6 +10,7 @@ var headlessWallet = require('headless-byteball');
 var desktopApp = require('byteballcore/desktop_app.js');
 var objectHash = require('byteballcore/object_hash.js');
 var notifications = require('./notifications.js');
+var fs = require("fs");
 var btoa = require('btoa');
 var calendar = {};
 var arrPeers = [];
@@ -29,6 +30,13 @@ getCurrentChampionshipsFromFootballDataOrg(FootballDataOrgBlacklist,function(arr
 	arrCurrentChampionShips.forEach(function(currentChampionShip) {
 		initFootballDataOrg(currentChampionShip.category, currentChampionShip.keyword, currentChampionShip.url);
 	});
+});
+
+var soccerTeamsCorrespondence = {}
+fs.readFile('./soccerTeamsCorrespondence.json', (err, content) => {
+	if (err)
+		throw Error("Could'nt read soccerTeamsCorrespondence.json");
+	soccerTeamsCorrespondence= JSON.parse(content);
 });
 
 if (conf.bRunWitness)
@@ -1063,7 +1071,7 @@ function initUfcCom(category, keyWord) {
 
 function checkUsingSecondSource(championship, feedName, UTCdate, result, handle) {
 
-	if (championship == 'NBA' || championship == 'MLB' || championship == 'NHL' || championship == 'NFL') {
+	if (championship == 'NBA' || championship == 'MLB' || championship == 'NHL' || championship == 'NFL' || soccerTeamsCorrespondence[championship]) {
 
 		checkUsingTheScore(championship, feedName, UTCdate, result, function(error, isOK) {
 			return handle(error, isOK);
@@ -1089,7 +1097,7 @@ function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
 			});
 		}
 		request({
-			url: 'https://api.thescore.com/' + championship.toLowerCase() + '/events/' + arrayEventIds[0]
+			url: 'https://api.thescore.com/' + theScoreKeyURL + '/events/' + arrayEventIds[0]
 		}, function(error, response, body) {
 			if (error || response.statusCode !== 200) {
 				return handle({
@@ -1109,10 +1117,23 @@ function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
 			}
 
 			if (parsedBody.status && parsedBody.status == "final") {
-
-				let feedHomeTeamName = parsedBody.home_team.full_name.replace(/\s/g, '').toUpperCase();
-				let feedAwayTeamName = parsedBody.away_team.full_name.replace(/\s/g, '').toUpperCase();
-
+				
+				if (soccerTeamsCorrespondence[championship]){
+					if (soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name]&&soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name]){
+						var feedHomeTeamName = soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name];
+						var feedAwayTeamName = soccerTeamsCorrespondence[championship][parsedBody.away_team.full_name];
+					} else {
+						notifications.notifyAdmin("Couldn't find a correspondency for " + feedName + " from thescore", ' ');
+						return handle({
+							msg: "Couldn't check result from second source of data, admin is notified",
+							isCriticalError: true
+						});
+					}
+				} else {
+					var feedHomeTeamName = parsedBody.home_team.full_name.replace(/\s/g, '').toUpperCase();
+					var feedAwayTeamName = parsedBody.away_team.full_name.replace(/\s/g, '').toUpperCase();
+				}
+				
 				if ((feedHomeTeamName + '_' + feedAwayTeamName) === feedName.slice(0, -11)) {
 
 					if (parsedBody.box_score.score.home.score > parsedBody.box_score.score.away.score && result == feedHomeTeamName) {
@@ -1145,9 +1166,16 @@ function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
 		});
 
 	}
+	
+	
+	if (soccerTeamsCorrespondence[championship]){
+		var theScoreKeyURL = soccerTeamsCorrespondence[championship].theScoreKeyURL;
+	} else {
+		var theScoreKeyURL = championship.toLowerCase();	
+	}
 
 	request({
-		url: 'https://api.thescore.com/' + championship.toLowerCase() + '/schedule'
+		url: 'https://api.thescore.com/' + theScoreKeyURL + '/schedule'
 	}, function(error, response, body) {
 		if (error || response.statusCode !== 200) {
 			return handle({
