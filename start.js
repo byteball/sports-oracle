@@ -1119,11 +1119,11 @@ function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
 			if (parsedBody.status && parsedBody.status == "final") {
 				
 				if (soccerTeamsCorrespondence[championship]){
-					if (soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name]&&soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name]){
+					if (soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name] && soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name]){
 						var feedHomeTeamName = soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name];
 						var feedAwayTeamName = soccerTeamsCorrespondence[championship][parsedBody.away_team.full_name];
 					} else {
-						notifications.notifyAdmin("Couldn't find a correspondency for " + feedName + " from thescore", ' ');
+						notifications.notifyAdmin("Couldn't find a correspondence for " + feedName + " from thescore", ' ');
 						return handle({
 							msg: "Couldn't check result from second source of data, admin is notified",
 							isCriticalError: true
