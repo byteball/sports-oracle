@@ -590,7 +590,7 @@ function initFootballDataOrg(category, keyWord, url) {
 					let fixture = encodeFixture(response.fixture);
 						if (fixture.feedName === expectedFeedName){
 							if (Number(response.fixture.result.goalsAwayTeam) > Number(response.fixture.result.goalsHomeTeam)) {
-								fixture.winner = fixture.homeTeam;
+								fixture.winner = fixture.AwayTeam;
 								fixture.winnerCode = fixture.feedAwayTeamName;
 							}
 							if (Number(response.fixture.result.goalsAwayTeam) < Number(response.fixture.result.goalsHomeTeam)) {
