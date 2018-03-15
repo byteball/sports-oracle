@@ -16,6 +16,7 @@ var calendar = {};
 var arrPeers = [];
 var FootballDataOrgBlacklist=[466];
 var reloadInterval = 1000*3600*24;
+var isDST = true;
 
 //------The different feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
@@ -819,7 +820,11 @@ function initMySportsFeedsCom(category, keyWord, url) {
 
 	function convertMySportsFeedsTimeToMomentUTC(mySportsFeedsDate, mySportsFeedsTime) {
 		let UtcDate = moment.utc(mySportsFeedsDate + ' ' + mySportsFeedsTime,'YYYY-MM-DD hh:mma');
-		UtcDate.add(5, 'hours');
+		if (isDST){
+			UtcDate.add(4, 'hours');
+		}else{
+			UtcDate.add(5, 'hours');
+		}
 		return UtcDate;
 	}
 
@@ -1031,7 +1036,7 @@ function initUfcCom(category, keyWord) {
 
 						var timeShift = 5;
 
-						if (eventDate.isDST()) {
+						if (isDST) {
 							timeShift--;
 						}
 						timeShift -= 2; // event can begin 2 hours before announced time due to preliminary fights
