@@ -208,7 +208,7 @@ function getHomeInstructions() {
 			instructions += getTxtCommandButton(keyword) + ' ';
 		}
 	}
-
+	instructions+= "\n------------------------------------------------------\nFor information about sports betting, please visit our wiki: https://wiki.byteball.org/Sports_betting"
 	return instructions;
 }
 
@@ -361,7 +361,7 @@ function getFeedStatus(cat,championship, fixture, from_address, resultHelper, ha
 		insertIntoAskedFixtures();
 		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + fixture.feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
 		+ "\n\nRules for " + championship + ": " + resultHelper.rules
-		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nYou don't want to play alone ? Get a Slack invitation: http://slack.byteball.org/ and join us on #prediction_markets channel.");
+		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nFind more information about sport betting on our wiki: https://wiki.byteball.org/Sports_betting");
 	}
 }
 
