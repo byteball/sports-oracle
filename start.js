@@ -20,9 +20,9 @@ var isDST = true;
 
 //------The different feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
-//initMySportsFeedsCom('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2017-regular/');
+initMySportsFeedsCom('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2018-regular/');
 initMySportsFeedsCom('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2017-2018-regular/');
-initMySportsFeedsCom('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2018-playoff/');
+//initMySportsFeedsCom('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2018-playoff/');
 initMySportsFeedsCom('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2017-2018-regular/');
 initUfcCom('Mixed Martial Arts', 'UFC');
 
@@ -208,7 +208,7 @@ function getHomeInstructions() {
 			instructions += getTxtCommandButton(keyword) + ' ';
 		}
 	}
-
+	instructions+= "\n------------------------------------------------------\nFor information about sports betting, please visit our wiki: https://wiki.byteball.org/Sports_betting"
 	return instructions;
 }
 
@@ -361,7 +361,7 @@ function getFeedStatus(cat,championship, fixture, from_address, resultHelper, ha
 		insertIntoAskedFixtures();
 		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + fixture.feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
 		+ "\n\nRules for " + championship + ": " + resultHelper.rules
-		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nYou don't want to play alone ? Get a Slack invitation: http://slack.byteball.org/ and join us on #prediction_markets channel.");
+		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nFind more information about sport betting on our wiki: https://wiki.byteball.org/Sports_betting");
 	}
 }
 
@@ -380,14 +380,14 @@ function getPublicCalendar() {
 }
 	
 
-function notifyForDatafeedPosted(feed_name) {
+function notifyForDatafeedPosted(feed_name, value) {
 	db.query(
 		"SELECT * FROM asked_fixtures WHERE feed_name=?  GROUP BY device_address", [feed_name],
 		function(rows) {
 			rows.forEach(
 				function(row) {
 					var device = require('byteballcore/device.js');
-					device.sendMessageToDevice(row.device_address, 'text', "Sport oracle posted result for " + row.feed_name);
+					device.sendMessageToDevice(row.device_address, 'text', "Sport oracle posted " + feed_name + " = " + value);
 				}
 			)
 
@@ -1246,9 +1246,9 @@ function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
 }
 eventBus.on('my_transactions_became_stable', function(arrUnits) {
 
-	db.query("SELECT feed_name FROM data_feeds WHERE unit IN(?)", [arrUnits], function(rows) {
+	db.query("SELECT feed_name,value FROM data_feeds WHERE unit IN(?)", [arrUnits], function(rows) {
 		rows.forEach(row => {
-			notifyForDatafeedPosted(row.feed_name);
+			notifyForDatafeedPosted(row.feed_name, row.value);
 		});
 	});
 
