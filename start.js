@@ -20,9 +20,9 @@ var isDST = true;
 
 //------The different feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
-//initMySportsFeedsCom('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2017-regular/');
+initMySportsFeedsCom('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2018-regular/');
 initMySportsFeedsCom('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2017-2018-regular/');
-initMySportsFeedsCom('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2018-playoff/');
+//initMySportsFeedsCom('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2018-playoff/');
 initMySportsFeedsCom('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2017-2018-regular/');
 initUfcCom('Mixed Martial Arts', 'UFC');
 
@@ -380,14 +380,14 @@ function getPublicCalendar() {
 }
 	
 
-function notifyForDatafeedPosted(feed_name) {
+function notifyForDatafeedPosted(feed_name, value) {
 	db.query(
 		"SELECT * FROM asked_fixtures WHERE feed_name=?  GROUP BY device_address", [feed_name],
 		function(rows) {
 			rows.forEach(
 				function(row) {
 					var device = require('byteballcore/device.js');
-					device.sendMessageToDevice(row.device_address, 'text', "Sport oracle posted result for " + row.feed_name);
+					device.sendMessageToDevice(row.device_address, 'text', "Sport oracle posted " + feed_name + " = " + value);
 				}
 			)
 
@@ -1246,9 +1246,9 @@ function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
 }
 eventBus.on('my_transactions_became_stable', function(arrUnits) {
 
-	db.query("SELECT feed_name FROM data_feeds WHERE unit IN(?)", [arrUnits], function(rows) {
+	db.query("SELECT feed_name,value FROM data_feeds WHERE unit IN(?)", [arrUnits], function(rows) {
 		rows.forEach(row => {
-			notifyForDatafeedPosted(row.feed_name);
+			notifyForDatafeedPosted(row.feed_name, row.value);
 		});
 	});
 
