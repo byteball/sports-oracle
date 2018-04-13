@@ -1139,7 +1139,7 @@ function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
 					var feedAwayTeamName = parsedBody.away_team.full_name.replace(/\s/g, '').toUpperCase();
 				}
 				
-				if ((feedHomeTeamName + '_' + feedAwayTeamName) === feedName.slice(0, -11)) {
+				if (((feedHomeTeamName + '_' + feedAwayTeamName) === feedName.slice(0, -11)) && moment(parsedBody.game_date).isSame(UTCdate, 'hour')) {
 
 					if (parsedBody.box_score.score.home.score > parsedBody.box_score.score.away.score && result == feedHomeTeamName) {
 						return handle(null, true);
