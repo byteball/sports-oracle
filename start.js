@@ -888,7 +888,27 @@ function initMySportsFeedsCom(category, keyWord, url) {
 			arrGames.forEach(function(game) {
 				if (typeof game === 'object') {
 					if (game.date.diff(moment(),'days') > -15 && game.date.diff(moment(),'days') < 30){
-						calendar[category][keyWord].feedNames[game.feedName] = game;
+						
+						if (calendar[category][keyWord].feedNames[game.feedName]){	//if feedname already in calendar then it's a doubleheaders, we need to differentiate the games
+							var initialFeedName = game.feedName;
+							if (calendar[category][keyWord].feedNames[game.feedName].date.isBefore(game.date)){
+								calendar[category][keyWord].feedNames[initialFeedName + "_G1"] = calendar[category][keyWord].feedNames[initialFeedName];
+								calendar[category][keyWord].feedNames[initialFeedName + "_G1"].feedName = initialFeedName + "_G1";
+								calendar[category][keyWord].feedNames[initialFeedName + "_G2"] = game;
+								calendar[category][keyWord].feedNames[initialFeedName + "_G2"].feedName = initialFeedName + "_G2";
+								delete calendar[category][keyWord].feedNames[initialFeedName];
+							}else{
+								calendar[category][keyWord].feedNames[initialFeedName + "_G1"] = game;
+								calendar[category][keyWord].feedNames[initialFeedName + "_G1"].feedName = initialFeedName + "_G1";
+								calendar[category][keyWord].feedNames[initialFeedName + "_G2"] = calendar[category][keyWord].feedNames[initialFeedName];
+								calendar[category][keyWord].feedNames[initialFeedName + "_G2"].feedName = initialFeedName + "_G2";
+								delete calendar[category][keyWord].feedNames[initialFeedName];
+								
+							}
+							
+						} else {
+							calendar[category][keyWord].feedNames[game.feedName] = game;
+						}
 					}
 				}
 			});
@@ -1139,7 +1159,7 @@ function checkUsingTheScore(championship, feedName, UTCdate, result, handle) {
 					var feedAwayTeamName = parsedBody.away_team.full_name.replace(/\s/g, '').toUpperCase();
 				}
 				
-				if (((feedHomeTeamName + '_' + feedAwayTeamName) === feedName.slice(0, -11)) && moment(parsedBody.game_date).isSame(UTCdate, 'hour')) {
+				if (feedHomeTeamName === feedName.split("_")[0] && feedAwayTeamName == feedName.split("_")[1] && moment(parsedBody.game_date).isSame(UTCdate, 'hour')) {
 
 					if (parsedBody.box_score.score.home.score > parsedBody.box_score.score.away.score && result == feedHomeTeamName) {
 						return handle(null, true);
