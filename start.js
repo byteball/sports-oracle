@@ -13,7 +13,7 @@ var notifications = require('./notifications.js');
 var fs = require("fs");
 var btoa = require('btoa');
 var calendar = {};
-var arrPeers = [];
+var assocPeers = [];
 var FootballDataOrgBlacklist=[466];
 var reloadInterval = 1000*3600*24;
 var isDST = true;
@@ -433,15 +433,15 @@ eventBus.on('text', function(from_address, text) {
 	text = text.trim();
 	let ucText = text.toUpperCase();
  
-	if (!arrPeers[from_address]) {
-		arrPeers[from_address] = {
+	if (!assocPeers[from_address]) {
+		assocPeers[from_address] = {
 			step: "home",
 			cat: "none_yet",
 		};
 	}
 
 	if (text == "home") {
-		arrPeers[from_address].step = 'home';
+		assocPeers[from_address].step = 'home';
 	}
 
 	if (text == "/JSON") {
@@ -449,37 +449,37 @@ eventBus.on('text', function(from_address, text) {
 	}
 
 	if (text == "post" && headlessWallet.isControlAddress(from_address)) {
-		arrPeers[from_address].step = 'waitingFeedname';
+		assocPeers[from_address].step = 'waitingFeedname';
 		return device.sendMessageToDevice(from_address, 'text', "Enter feedname or return " + getTxtCommandButton("home"));
 	}
 
-	if (arrPeers[from_address].step == 'waitingFeedname' && headlessWallet.isControlAddress(from_address)) {
+	if (assocPeers[from_address].step == 'waitingFeedname' && headlessWallet.isControlAddress(from_address)) {
 		readExistingData(text, function(exists, is_stable, value) {
 			if (exists) {
-				arrPeers[from_address].step = 'home';
+				assocPeers[from_address].step = 'home';
 				return device.sendMessageToDevice(from_address, 'text', "This feedname was already posted with " + value + " as value");
 			} else {
-				arrPeers[from_address].step = 'waitingValue';
-				arrPeers[from_address].feedNametoBePosted = text;
+				assocPeers[from_address].step = 'waitingValue';
+				assocPeers[from_address].feedNametoBePosted = text;
 				return device.sendMessageToDevice(from_address, 'text', "Enter value for " + text + " or return " + getTxtCommandButton("home"));
 			}
 		});
 	}
 	
-	if (arrPeers[from_address].step == 'waitingValue' && headlessWallet.isControlAddress(from_address)) {
+	if (assocPeers[from_address].step == 'waitingValue' && headlessWallet.isControlAddress(from_address)) {
 		var datafeed = {};
-		datafeed[arrPeers[from_address].feedNametoBePosted] = text;
+		datafeed[assocPeers[from_address].feedNametoBePosted] = text;
 		reliablyPostDataFeed(datafeed);
-		arrPeers[from_address].step = 'home';
+		assocPeers[from_address].step = 'home';
 		return device.sendMessageToDevice(from_address, 'text', "The feedname is being posted \n➡ " + getTxtCommandButton("ok"));
 	}
 	
-	if (arrPeers[from_address].step != 'waitingFeedname' && arrPeers[from_address].step != 'waitingValue') {
+	if (assocPeers[from_address].step != 'waitingFeedname' && assocPeers[from_address].step != 'waitingValue') {
 		
 		for (var cat in calendar) {
 			if (calendar[cat][text]) {
-				arrPeers[from_address].step = text;
-				arrPeers[from_address].cat = cat;
+				assocPeers[from_address].step = text;
+				assocPeers[from_address].cat = cat;
 				return device.sendMessageToDevice(from_address, 'text', getChampionshipInstructions(text));
 			}
 		}
@@ -495,15 +495,15 @@ eventBus.on('text', function(from_address, text) {
 			}
 		}
 
-		if (calendar[arrPeers[from_address].cat] && arrPeers[from_address].step != 'home') {
+		if (calendar[assocPeers[from_address].cat] && assocPeers[from_address].step != 'home') {
 
 			if (text == "last") {
-				return device.sendMessageToDevice(from_address, 'text', getFixturesBeforeNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + getChampionshipInstructions(arrPeers[from_address].step));
+				return device.sendMessageToDevice(from_address, 'text', getFixturesBeforeNow(calendar[assocPeers[from_address].cat][assocPeers[from_address].step].feedNames) + getChampionshipInstructions(assocPeers[from_address].step));
 			}
 			if (text == "coming") {
-				return device.sendMessageToDevice(from_address, 'text', getFixturesAfterNow(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames) + getChampionshipInstructions(arrPeers[from_address].step));
+				return device.sendMessageToDevice(from_address, 'text', getFixturesAfterNow(calendar[assocPeers[from_address].cat][assocPeers[from_address].step].feedNames) + getChampionshipInstructions(assocPeers[from_address].step));
 			}
-			return device.sendMessageToDevice(from_address, 'text', "Search for '" + text + "' :\n" + searchFixtures(calendar[arrPeers[from_address].cat][arrPeers[from_address].step].feedNames, text) + getChampionshipInstructions(arrPeers[from_address].step));
+			return device.sendMessageToDevice(from_address, 'text', "Search for '" + text + "' :\n" + searchFixtures(calendar[assocPeers[from_address].cat][assocPeers[from_address].step].feedNames, text) + getChampionshipInstructions(assocPeers[from_address].step));
 		}
 
 		return device.sendMessageToDevice(from_address, 'text', getHomeInstructions());
