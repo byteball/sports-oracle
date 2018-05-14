@@ -46,7 +46,7 @@ function getFixtureFromFeedName(feedName) {
 function getResultHelperFromFeedName(feedName) {
 	for (var cat in calendar) {
 		for (var champ in calendar[cat]) {
-			if (calendar[cat][champ].fixtures[feedName])
+			if (calendar[cat][champ].fixtures && calendar[cat][champ].fixtures[feedName])
 				return calendar[cat][champ].resultHelper;
 		}
 
@@ -140,6 +140,10 @@ function getPublicCalendar() {
 	return JSON.stringify(publicCalendar);
 }
 
+function isAmericanDST(){
+	return true;
+}
+
 exports.addFixture = addFixture;
 exports.addResultHelper = addResultHelper;
 exports.getFixtureFromFeedName = getFixtureFromFeedName;
@@ -154,3 +158,4 @@ exports.getPublicCalendar = getPublicCalendar;
 exports.getCategoryFromFeedName = getCategoryFromFeedName;
 exports.getCategoryFromChampionship = getCategoryFromChampionship;
 exports.getChampionshipFromFeedName = getChampionshipFromFeedName;
+exports.isAmericanDST = isAmericanDST;
