@@ -3,6 +3,7 @@
 const moment = require('moment');
 const request = require('request');
 const calendar = require('./calendar.js');
+const notifications = require('./notifications.js');
 
 var reloadInterval = 1000*3600*24;
 

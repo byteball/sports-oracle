@@ -5,6 +5,7 @@ const request = require('request');
 const btoa = require('btoa');
 const conf = require('byteballcore/conf.js');
 const calendar = require('./calendar.js');
+const notifications = require('./notifications.js');
 
 var reloadInterval = 1000*3600*24;
 

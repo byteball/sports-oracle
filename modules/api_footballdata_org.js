@@ -5,6 +5,8 @@ const request = require('request');
 const calendar = require('./calendar.js');
 const conf = require('byteballcore/conf.js');
 const commons = require('./commons.js');
+const notifications = require('./notifications.js');
+
 
 var reloadInterval = 1000*3600*24;
 var blackListedChampionships=[466];

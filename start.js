@@ -8,7 +8,7 @@ var eventBus = require('byteballcore/event_bus.js');
 var headlessWallet = require('headless-byteball');
 var desktopApp = require('byteballcore/desktop_app.js');
 var objectHash = require('byteballcore/object_hash.js');
-var notifications = require('./notifications.js');
+const notifications = require('./modules/notifications.js');
 const commons = require('./modules/commons.js');
 const calendar = require('./modules/calendar.js');
 const mySportFeed = require('./modules/api_mysportfeed.js');
@@ -500,8 +500,6 @@ function getResponseForFeedAlreadyInDAG(homeTeamName, awayTeamName, date, result
 			"\n\nThe data is already in the database, you can unlock your smart contract now." :
 			"\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
 }
-
-
 
 
 

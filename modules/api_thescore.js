@@ -4,6 +4,7 @@ const moment = require('moment');
 const request = require('request');
 const calendar = require('./calendar.js');
 const fs = require("fs");
+const notifications = require('./notifications.js');
 
 
 var soccerTeamsCorrespondence = {}
