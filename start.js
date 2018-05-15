@@ -12,6 +12,7 @@ const notifications = require('./modules/notifications.js');
 const commons = require('./modules/commons.js');
 const calendar = require('./modules/calendar.js');
 const datafeeds = require('./modules/datafeeds.js');
+const administration = require('./modules/administration.js');
 const mySportFeed = require('./modules/api_mysportfeed.js');
 const UfcCom = require('./modules/api_ufc_com.js');
 const footballDataOrg = require('./modules/api_footballdata_org.js');
@@ -182,7 +183,7 @@ function getFeedStatus(from_address, feedName, handle) {
 	var resultHelper = calendar.getResultHelperFromFeedName(feedName);
 	var championship = calendar.getChampionshipFromFeedName(feedName);
 	
-	function insertIntoAskedFixtures(){
+	function insertIntoRequestedFixtures(){
 		db.takeConnectionFromPool(function(conn) {
 			var arrQueries = [];
 			conn.addQuery(arrQueries, "BEGIN");
@@ -200,11 +201,11 @@ function getFeedStatus(from_address, feedName, handle) {
 
 			if (exists) {
 				if (!is_stable) {
-					insertIntoAskedFixtures();
+					insertIntoRequestedFixtures();
 				}
 				handle(getResponseForFeedAlreadyInDAG(fixture.homeTeam, fixture.awayTeam, fixture.date.format("YYYY-MM-DD HH:mm:ss"), value, is_stable));
 			} else {
-				insertIntoAskedFixtures();
+				insertIntoRequestedFixtures();
 				var device = require('byteballcore/device.js');
 				device.sendMessageToDevice(from_address, 'text', "Result is being retrieved, please wait.");
 				retrieveAndPostResult(fixture.urlResult, calendar.getChampionshipFromFeedName(feedName), feedName, resultHelper, function(txt) {
@@ -213,7 +214,7 @@ function getFeedStatus(from_address, feedName, handle) {
 			}
 		});
 	} else {
-		insertIntoAskedFixtures();
+		insertIntoRequestedFixtures();
 		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
 		+ "\n\nRules for " + championship + ": " + resultHelper.rules
 		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nFind more information about sport betting on our wiki: https://wiki.byteball.org/Sports_betting");
@@ -303,31 +304,10 @@ eventBus.on('text', function(from_address, text) {
 		return device.sendMessageToDevice(from_address, 'text', calendar.getPublicCalendar());
 	}
 
-	if (text == "post" && headlessWallet.isControlAddress(from_address)) {
-		assocPeers[from_address].step = 'waitingFeedname';
-		return device.sendMessageToDevice(from_address, 'text', "Enter feedname or return " + commons.getTxtCommandButton("home"));
-	}
-
-	if (assocPeers[from_address].step == 'waitingFeedname' && headlessWallet.isControlAddress(from_address)) {
-		datafeeds.readExisting(text, function(exists, is_stable, value) {
-			if (exists) {
-				assocPeers[from_address].step = 'home';
-				return device.sendMessageToDevice(from_address, 'text', "This feedname was already posted with " + value + " as value");
-			} else {
-				assocPeers[from_address].step = 'waitingValue';
-				assocPeers[from_address].feedNametoBePosted = text;
-				return device.sendMessageToDevice(from_address, 'text', "Enter value for " + text + " or return " + commons.getTxtCommandButton("home"));
-			}
-		});
-	}
-	
-	if (assocPeers[from_address].step == 'waitingValue' && headlessWallet.isControlAddress(from_address)) {
-		var datafeed = {};
-		datafeed[assocPeers[from_address].feedNametoBePosted] = text;
-		reliablyPostDataFeed(datafeed);
-		assocPeers[from_address].step = 'home';
-		return device.sendMessageToDevice(from_address, 'text', "The feedname is being posted \n➡ " + commons.getTxtCommandButton("ok"));
-	}
+	 if(headlessWallet.isControlAddress(from_address)){
+		if (administration.processCmd(from_address, assocPeers, text))
+			return;
+	 }
 	
 	if (assocPeers[from_address].step != 'waitingFeedname' && assocPeers[from_address].step != 'waitingValue') {
 		
