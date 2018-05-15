@@ -2,6 +2,7 @@
 "use strict";
 var moment = require('moment');
 var request = require('request');
+const async = require('async');
 var conf = require('byteballcore/conf.js');
 var db = require('byteballcore/db.js');
 var eventBus = require('byteballcore/event_bus.js');
@@ -141,7 +142,7 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 		resultHelper.process(parsedBody, feedName, function(err, result) {
 			if (err) {
 				notifications.notifyAdmin("There was an error getting result for " + feedName, "URL concerned: " + url + " error: " + err);
-				db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
+				db.query("UPDATE requested_fixtures SET has_critical_error=1 WHERE feed_name=?", [feedName]);
 				return handle("Problem getting this result, admin is notified");
 			}
 
@@ -149,7 +150,7 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 
 				if (error) {
 					if (error.isCriticalError) {
-						db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
+						db.query("UPDATE requested_fixtures SET has_critical_error=1 WHERE feed_name=?", [feedName]);
 					}
 					return handle(error.msg);
 
@@ -161,7 +162,7 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 					datafeeds.reliablyPost(datafeed);
 					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.localDay ? " on " + result.localDay.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
 				} else {
-					db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feedName]);
+					deleteFromDB(feedName);
 					notifications.notifyAdmin("Check failed for " + feedName, " ");
 					return handle("Inconsistency found for result, admin is notified");
 
@@ -182,7 +183,16 @@ function getFeedStatus(from_address, feedName, handle) {
 	var championship = calendar.getChampionshipFromFeedName(feedName);
 	
 	function insertIntoAskedFixtures(){
-		db.query("INSERT INTO asked_fixtures (device_address, feed_name, fixture_date, status, result_url, cat, championship, hours_to_wait) VALUES (?,?,?,?,?,?,?,?)", [from_address, feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"), 'new', fixture.urlResult, calendar.getCategoryFromFeedName(feedName), championship, resultHelper.hoursToWaitBeforeGetResult]);
+		db.takeConnectionFromPool(function(conn) {
+			var arrQueries = [];
+			conn.addQuery(arrQueries, "BEGIN");
+			conn.addQuery(arrQueries, "INSERT OR IGNORE INTO requested_fixtures ( feed_name, fixture_date, result_url, hours_to_wait) VALUES (?,?,?,?) ",[feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"),fixture.urlResult,resultHelper.hoursToWaitBeforeGetResult]);
+			conn.addQuery(arrQueries, "INSERT OR IGNORE INTO devices_having_requested_fixture (device_address, feed_name) VALUES (?,?)",[from_address, feedName]);
+			conn.addQuery(arrQueries, "COMMIT");
+			async.series(arrQueries, function() {
+				conn.release();
+			});
+		});
 	}
 
 	if (fixture.date.isBefore(moment().subtract(resultHelper.hoursToWaitBeforeGetResult, 'hours'))) {
@@ -212,37 +222,52 @@ function getFeedStatus(from_address, feedName, handle) {
 
 
 
-function notifyForDatafeedPosted(feed_name, value) {
+function notifyForDatafeedPosted(feedName, value) {
 	db.query(
-		"SELECT * FROM asked_fixtures WHERE feed_name=?  GROUP BY device_address", [feed_name],
+		"SELECT device_address FROM devices_having_requested_fixture WHERE feed_name=?", [feedName],
 		function(rows) {
 			rows.forEach(
 				function(row) {
 					var device = require('byteballcore/device.js');
-					device.sendMessageToDevice(row.device_address, 'text', "Sport oracle posted " + feed_name + " = " + value);
+					device.sendMessageToDevice(row.device_address, 'text', "Sport oracle posted " + feedName + " = " + value);
 				}
 			)
 
-			db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [feed_name]);
+			deleteFromDB(feedName);
 		}
 	);
+}
+
+function deleteFromDB(feedName){
+
+	db.takeConnectionFromPool(function(conn) {
+		var arrQueries = [];
+		conn.addQuery(arrQueries, "BEGIN");
+		conn.addQuery(arrQueries, "DELETE FROM requested_fixtures WHERE feed_name=?",[feedName]);
+		conn.addQuery(arrQueries, "DELETE FROM devices_having_requested_fixture WHERE feed_name=?",[feedName]);
+		conn.addQuery(arrQueries, "COMMIT");
+		async.series(arrQueries, function() {
+			conn.release();
+		});
+	});
+	
 }
 
 
 setInterval(function() {
 	db.query(
-		"SELECT DISTINCT feed_name, result_url, cat, championship FROM asked_fixtures WHERE fixture_date < datetime('now', '-' || hours_to_wait ||' hours') GROUP BY feed_name",
+		"SELECT feed_name,result_url FROM requested_fixtures WHERE fixture_date < datetime('now', '-' || hours_to_wait ||' hours') AND has_critical_error=0",
 		function(rows) {
 			rows.forEach(
 				function(row) {
 					if (calendar.getFixtureFromFeedName(row.feed_name)) {
 						datafeeds.readExisting(row.feed_name, function(exists) {
 							if(!exists)
-							retrieveAndPostResult(row.result_url, row.championship, row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function() {});
+							retrieveAndPostResult(row.result_url, calendar.getChampionshipFromFeedName(row.feed_name), row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function() {});
 						});
 					} else {
 						notifications.notifyAdmin("Championship " + row.feed_name + " not in calendar anymore, can't get result", "");
-						db.query("DELETE FROM asked_fixtures WHERE feed_name=?", [row.feed_name]);
+						deleteFromDB(row.feed_name);
 					}
 				}
 			)
@@ -251,8 +276,6 @@ setInterval(function() {
 	);
 },
 1000 * 360);
-
-
 
 
 eventBus.on('paired', function(from_address) {
