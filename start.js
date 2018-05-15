@@ -28,7 +28,7 @@ mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mys
 mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2018-playoff/');
 UfcCom.getFixturesAndPushIntoCalendar('Mixed Martial Arts', 'UFC');
 
-footballDataOrg.getAllChampionshipsAndPushIntoCalendar();
+//footballDataOrg.getAllChampionshipsAndPushIntoCalendar();
 
 
 if (conf.bRunWitness)
@@ -292,7 +292,6 @@ eventBus.on('text', function(from_address, text) {
 	if (!assocPeers[from_address]) {
 		assocPeers[from_address] = {
 			step: "home",
-			cat: "none_yet",
 		};
 	}
 
@@ -309,36 +308,35 @@ eventBus.on('text', function(from_address, text) {
 			return;
 	 }
 	
-	if (assocPeers[from_address].step != 'waitingFeedname' && assocPeers[from_address].step != 'waitingValue') {
 		
-		if (calendar.isExistingChampionship(text)){
-			assocPeers[from_address].step = text;
-			assocPeers[from_address].cat = calendar.getCategoryFromChampionship(text);
-			return device.sendMessageToDevice(from_address, 'text', getChampionshipInstructions(text));
-		}
-
-
-		if (calendar.getFixtureFromFeedName(text)) {
-			getFeedStatus(from_address, text, function(response) {
-				device.sendMessageToDevice(from_address, 'text', response);
-			});
-			return;
-		}
-
-
-		if (calendar.isExistingCategorie(assocPeers[from_address].cat) && assocPeers[from_address].step != 'home') {
-
-			if (text == "last") {
-				return device.sendMessageToDevice(from_address, 'text', getFixturesBeforeNow(assocPeers[from_address].step) + getChampionshipInstructions(assocPeers[from_address].step));
-			}
-			if (text == "coming") {
-				return device.sendMessageToDevice(from_address, 'text', getFixturesAfterNow(assocPeers[from_address].step) + getChampionshipInstructions(assocPeers[from_address].step));
-			}
-			return device.sendMessageToDevice(from_address, 'text', "Search for '" + text + "' :\n" + searchFixtures(assocPeers[from_address].step, text) + getChampionshipInstructions(assocPeers[from_address].step));
-		}
-
-		return device.sendMessageToDevice(from_address, 'text', getHomeInstructions());
+	if (calendar.isExistingChampionship(text)){
+		assocPeers[from_address].step = "searchingFixture";
+		assocPeers[from_address].championship = text;
+		return device.sendMessageToDevice(from_address, 'text', getChampionshipInstructions(text));
 	}
+
+
+	if (calendar.getFixtureFromFeedName(text)) {
+		getFeedStatus(from_address, text, function(response) {
+			device.sendMessageToDevice(from_address, 'text', response);
+		});
+		return;
+	}
+
+
+	if (assocPeers[from_address].step == "searchingFixture") {
+
+		if (text == "last") {
+			return device.sendMessageToDevice(from_address, 'text', getFixturesBeforeNow(assocPeers[from_address].championship) + getChampionshipInstructions(assocPeers[from_address].championship));
+		}
+		if (text == "coming") {
+			return device.sendMessageToDevice(from_address, 'text', getFixturesAfterNow(assocPeers[from_address].championship) + getChampionshipInstructions(assocPeers[from_address].championship));
+		}
+		return device.sendMessageToDevice(from_address, 'text', "Search for '" + text + "' :\n" + searchFixtures(assocPeers[from_address].championship, text) + getChampionshipInstructions(assocPeers[from_address].championship));
+	}
+
+	return device.sendMessageToDevice(from_address, 'text', getHomeInstructions());
+
 });
 
 
