@@ -255,9 +255,12 @@ function deleteFromDB(feedName){
 }
 
 
-setInterval(function() {
+function findFixturesToCheckAndGetResult() {
 	db.query(
-		"SELECT feed_name,result_url FROM requested_fixtures WHERE fixture_date < datetime('now', '-' || hours_to_wait ||' hours') AND has_critical_error=0",
+		"SELECT feed_name,result_url,(strftime('%s','now') - strftime('%s',fixture_date) - hours_to_wait * 3600) AS time_from_first_check FROM requested_fixtures WHERE  \n\
+		(fixture_date < datetime('now', '-' || hours_to_wait ||' hours') AND has_critical_error=0) \n\
+		OR \n\
+		(time_from_first_check>0 AND time_from_first_check/3600.0*12.0 LIKE '%.0%' AND has_critical_error=1)",
 		function(rows) {
 			rows.forEach(
 				function(row) {
@@ -275,8 +278,8 @@ setInterval(function() {
 
 		}
 	);
-},
-1000 * 360);
+}
+
 
 
 eventBus.on('paired', function(from_address) {
@@ -394,5 +397,8 @@ eventBus.on('headless_wallet_ready', function() {
 		console.log("please specify MySportsFeeds credentials in your " + desktopApp.getAppDataDir() + '/conf.json');
 		process.exit(1);
 	}
+
+setTimeout(findFixturesToCheckAndGetResult, 1000 * 10); //wait that the calendar is intitialized
+setInterval(findFixturesToCheckAndGetResult, 1000 * 3600);
 
 });
