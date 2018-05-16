@@ -21,35 +21,28 @@ function canCheckChampionship(championship){
 }
 
 
-function checkResult(championship, feedName, UTCdate, result, handle) {
+function checkResult(championship, feedName, UTCdate, result, callbacks) {
 
 	function findAndCheckFixture(arrayEventIds) {
 		if (arrayEventIds.length == 0) {
 			notifications.notifyAdmin("arrayEventIds empty when checking " + feedName, ' ');
-			return handle({
-				msg: "Couldn't check result from second source of data, admin is notified",
-				isCriticalError: true
-			});
+			return callbacks.ifCriticalError();
 		}
 		request({
 			url: 'https://api.thescore.com/' + theScoreKeyURL + '/events/' + arrayEventIds[0]
 		}, function(error, response, body) {
-			if (error || response.statusCode !== 200) {
-				return handle({
-					msg: "Error, can't get info from data provider",
-					isCriticalError: false
-				});
-			}
+			if (error || response.statusCode !== 200) 
+				return callbacks.ifError();
+			
 			try {
 				var parsedBody = JSON.parse(body);
 
 			} catch (e) {
 				notifications.notifyAdmin("Result for event id " + arrayEventIds[0] + " can't be parsed from thescore.com", body);
-				return handle({
-					msg: "Couldn't parse result from second source of data, admin is notified",
-					isCriticalError: true
-				});
+				return callbacks.ifCriticalError();
 			}
+			
+
 
 			if (parsedBody.status && parsedBody.status == "final") {
 				
@@ -59,29 +52,27 @@ function checkResult(championship, feedName, UTCdate, result, handle) {
 						var feedAwayTeamName = soccerTeamsCorrespondence[championship][parsedBody.away_team.full_name];
 					} else {
 						notifications.notifyAdmin("Couldn't find a correspondence for " + feedName + " from thescore", ' ');
-						return handle({
-							msg: "Couldn't check result from second source of data, admin is notified",
-							isCriticalError: true
-						});
+						return callbacks.ifCriticalError();
 					}
 				} else {
 					var feedHomeTeamName = parsedBody.home_team.full_name.replace(/\s/g, '').toUpperCase();
 					var feedAwayTeamName = parsedBody.away_team.full_name.replace(/\s/g, '').toUpperCase();
 				}
 				
-				if (feedHomeTeamName === feedName.split("_")[0] && feedAwayTeamName == feedName.split("_")[1] && moment(parsedBody.game_date).isSame(UTCdate, 'hour')) {
+				if (feedHomeTeamName === feedName.split("_")[0] && feedAwayTeamName == feedName.split("_")[1] 
+					&& moment(parsedBody.game_date).isSameOrAfter(UTCdate.subtract(1, 'hours')) && moment(parsedBody.game_date).isSameOrBefore(UTCdate.subtract(3, 'hours'))) {
 
 					if (parsedBody.box_score.score.home.score > parsedBody.box_score.score.away.score && result == feedHomeTeamName) {
-						return handle(null, true);
+						return callbacks.ifOK();
 					}
 					if (parsedBody.box_score.score.home.score < parsedBody.box_score.score.away.score && result == feedAwayTeamName) {
-						return handle(null, true);
+						return callbacks.ifOK();
 					}
 					if (parsedBody.box_score.score.home.score == parsedBody.box_score.score.away.score && result == 'draw') {
-						return handle(null, true);
+						return callbacks.ifOK();
 					}
 
-					return handle(null, false);
+					return callbacks.ifFailedCheck();
 
 				}
 			}
@@ -90,10 +81,7 @@ function checkResult(championship, feedName, UTCdate, result, handle) {
 				return findAndCheckFixture(arrayEventIds.splice(1));
 			} else {
 				notifications.notifyAdmin("Couldn't check " + feedName + " from thescore", ' ');
-				return handle({
-					msg: "Couldn't parse result from second source of data, admin is notified",
-					isCriticalError: true
-				});
+				return callbacks.ifCriticalError();
 
 			}
 
@@ -112,22 +100,15 @@ function checkResult(championship, feedName, UTCdate, result, handle) {
 	request({
 		url: 'https://api.thescore.com/' + theScoreKeyURL + '/schedule'
 	}, function(error, response, body) {
-		if (error || response.statusCode !== 200) {
-			return handle({
-				msg: "Error, can't get info from data provider",
-				isCriticalError: false
-			});
-		}
+		if (error || response.statusCode !== 200) 
+			return callbacks.ifError();
+
 		try {
 			var parsedBody = JSON.parse(body);
 
 		} catch (e) {
 			notifications.notifyAdmin("Result for " + feedName + " can't be parsed from thescore.com" + "\n" + body);
-			return handle({
-				msg: "Couldn't parse result from second source of data, admin is notified",
-				isCriticalError: true
-			});
-
+			return callbacks.ifCriticalError();
 		}
 
 
@@ -155,19 +136,14 @@ function checkResult(championship, feedName, UTCdate, result, handle) {
 
 			if (!dayOrWeekFound) {
 				notifications.notifyAdmin("Day not found for " + feedName, JSON.stringify(parsedBody));
-				return handle({
-					msg: "Couldn't parse result from second source of data, admin is notified",
-					isCriticalError: true
-				});
+				return callbacks.ifCriticalError();
 			}
 
 
 		} else {
 			notifications.notifyAdmin("Wrong JSON format from thescore.com for " + championship, JSON.stringify(parsedBody));
-			return handle({
-				msg: "Couldn't parse result from second source of data, admin is notified",
-				isCriticalError: true
-			});
+			return callbacks.ifError();
+
 		}
 
 

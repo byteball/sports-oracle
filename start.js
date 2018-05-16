@@ -151,28 +151,27 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 				return handle("Problem getting this result, admin is notified");
 			}
 
-			checkUsingSecondSource(championship, feedName, result.date, result.winnerCode, function(errSecondSource, isOK) {
-
-				if (errSecondSource) {
-					if (errSecondSource.isCriticalError) {
-						setHasCriticalError()
-					}
-					return handle(errSecondSource.msg);
-
-				}
-
-				if (isOK) {
+			checkUsingSecondSource(championship, feedName, result.date, result.winnerCode, {
+				ifPostponed: () => {
+					deleteFromDB(feedName);
+					return handle("This result has been postponed.");
+				},
+				ifCriticalError: () => {
+					setHasCriticalError();
+					return handle("I couldn't check the result with a second source of data, admin is notified.");
+				},
+				ifError: () => {
+					return handle("I couldn't check the result with a second source of data, please try later");
+				},
+				ifFailedCheck: () => {
+					return handle("Inconsistency found for result, admin is notified.");
+				},
+				ifOK: () => {
 					datafeeds.reliablyPost({
 						feedName: result.winnerCode
 					});
 					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.localDay ? " on " + result.localDay.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
-				} else {
-					setHasCriticalError();
-					notifications.notifyAdmin("Check failed for " + feedName, " ");
-					return handle("Inconsistency found for result, admin is notified");
-
 				}
-
 			});
 
 		});
@@ -359,16 +358,14 @@ function getResponseForFeedAlreadyInDAG(fixture, result, is_stable) {
 
 
 
-function checkUsingSecondSource(championship, feedName, UTCdate, result, handle) {
+function checkUsingSecondSource(championship, feedName, UTCdate, result, callbacks) {
 
 	if (theScore.canCheckChampionship()) {
 
-		theScore.checkResult(championship, feedName, UTCdate, result, function(error, isOK) {
-			return handle(error, isOK);
-		});
+		theScore.checkResult(championship, feedName, UTCdate, result, callbacks);
 
 	} else {
-		return handle(null, true);
+		return callbacks.ifOK();
 	}
 
 }
@@ -386,7 +383,6 @@ eventBus.on('my_transactions_became_stable', function(arrUnits) {
 });
 
 
-//////
 
 eventBus.on('headless_wallet_ready', function() {
 	if (!conf.admin_email || !conf.from_email) {
