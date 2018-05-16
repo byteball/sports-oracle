@@ -19,7 +19,7 @@ function addFixture(category, championship, feedName, fixtureDescription) {
 		calendar[category][championship].fixtures[feedName] = {};
 
 	calendar[category][championship].fixtures[feedName] = fixtureDescription;
-
+	console.log("\nAdding " + championship + " " + feedName);
 }
 
 function addResultHelper(category, championship, resultHelper) {

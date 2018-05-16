@@ -28,7 +28,7 @@ mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mys
 mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2018-playoff/');
 UfcCom.getFixturesAndPushIntoCalendar('Mixed Martial Arts', 'UFC');
 
-//footballDataOrg.getAllChampionshipsAndPushIntoCalendar();
+footballDataOrg.getAllChampionshipsAndPushIntoCalendar();
 
 
 if (conf.bRunWitness)
@@ -60,44 +60,44 @@ function getChampionshipInstructions(championshipName) {
 function getFixturesAfterNow(championship) {
 	var fixtures = calendar.getAllfixturesFromChampionship(championship);
 	var txtReturn = '12 next games coming: \n';
-	var bufferAfter = [];
+	var buffer = [];
 	for (var feedName in fixtures) {
 		if (fixtures[feedName].date.isAfter(moment())) {
-			bufferAfter.push(commons.getTxtCommandButton(fixtures[feedName].homeTeam + ' vs ' + fixtures[feedName].awayTeam + " on " + fixtures[feedName].localDay.format("YYYY-MM-DD"), feedName) + "\n");
+			buffer.push(commons.getTxtCommandButton(fixtures[feedName].homeTeam + ' vs ' + fixtures[feedName].awayTeam + " on " + fixtures[feedName].localDay.format("YYYY-MM-DD"), feedName) + "\n");
 		}
 	}
-	if (bufferAfter.length == 0) {
+	if (buffer.length == 0) {
 		txtReturn = "No results found \n";
 		return txtReturn;
 	}
-	txtReturn += bufferAfter.slice(0, 12).join('\n') + "\n";
+	txtReturn += buffer.slice(0, 12).join('\n') + "\n";
 	return txtReturn;
 }
 
 function getFixturesBeforeNow(championship) {
 	var fixtures = calendar.getAllfixturesFromChampionship(championship);
 	var txtReturn = '12 last games played: \n';
-	var bufferBefore = [];
+	var buffer = [];
 	for (var feedName in fixtures) {
 		if (fixtures[feedName].date.isBefore(moment())) {
-			bufferBefore.push(commons.getTxtCommandButton(fixtures[feedName].homeTeam + ' vs ' + fixtures[feedName].awayTeam + " on " + fixtures[feedName].localDay.format("YYYY-MM-DD"), feedName) + "\n");
+			buffer.push(commons.getTxtCommandButton(fixtures[feedName].homeTeam + ' vs ' + fixtures[feedName].awayTeam + " on " + fixtures[feedName].localDay.format("YYYY-MM-DD"), feedName) + "\n");
 		}
 	}
-	if (bufferBefore.length == 0) {
+	if (buffer.length == 0) {
 		txtReturn = "No results found  \n";
 		return txtReturn;
 	}
-	txtReturn += bufferBefore.slice(-12).join('\n') + "\n";
+	txtReturn += buffer.slice(-12).join('\n') + "\n";
 	return txtReturn;
 }
 
-function searchFixtures(championship, search) {
+function searchFixtures(championship, searchedString) {
 	var fixtures = calendar.getAllfixturesFromChampionship(championship);
-	var splitText = search.split(/\sVS\s|\sVs\.\s|\svs\s|\sVS\.\s|\sV\.\s/);
+	var splitText = searchedString.split(/\sVS\s|\sVs\.\s|\svs\s|\sVS\.\s|\sV\.\s/);
 	var buffer = [];
 	if (splitText.length === 1) {
 		for (var feedName in fixtures) {
-			if (commons.removeAccents(fixtures[feedName].homeTeam).toUpperCase().indexOf(commons.removeAccents(search).toUpperCase()) > -1 || commons.removeAccents(fixtures[feedName].awayTeam).toUpperCase().indexOf(commons.removeAccents(search).toUpperCase()) > -1) {
+			if (commons.removeAccents(fixtures[feedName].homeTeam).toUpperCase().indexOf(commons.removeAccents(searchedString).toUpperCase()) > -1 || commons.removeAccents(fixtures[feedName].awayTeam).toUpperCase().indexOf(commons.removeAccents(searchedString).toUpperCase()) > -1) {
 				buffer.push(commons.getTxtCommandButton(fixtures[feedName].homeTeam + ' vs ' + fixtures[feedName].awayTeam + " on " + fixtures[feedName].localDay.format("YYYY-MM-DD"), feedName) + "\n");
 			}
 		}
@@ -140,27 +140,27 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 			return handle('Couldn t parse result, admin is notified');
 		}
 
-		resultHelper.process(parsedBody, feedName, function(err, result) {
-			if (err) {
+		resultHelper.process(parsedBody, feedName, function(errMainSource, result) {
+			if (errMainSource) {
 				notifications.notifyAdmin("There was an error getting result for " + feedName, "URL concerned: " + url + " error: " + err);
 				db.query("UPDATE requested_fixtures SET has_critical_error=1 WHERE feed_name=?", [feedName]);
 				return handle("Problem getting this result, admin is notified");
 			}
 
-			checkUsingSecondSource(championship, feedName, result.date, result.winnerCode, function(error, isOK) {
+			checkUsingSecondSource(championship, feedName, result.date, result.winnerCode, function(errSecondSource, isOK) {
 
-				if (error) {
-					if (error.isCriticalError) {
+				if (errSecondSource) {
+					if (errSecondSource.isCriticalError) {
 						db.query("UPDATE requested_fixtures SET has_critical_error=1 WHERE feed_name=?", [feedName]);
 					}
-					return handle(error.msg);
+					return handle(errSecondSource.msg);
 
 				}
 
 				if (isOK) {
-					var datafeed = {};
-					datafeed[feedName] = result.winnerCode;
-					datafeeds.reliablyPost(datafeed);
+					datafeeds.reliablyPost({
+						feedName: result.winnerCode
+					});
 					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.localDay ? " on " + result.localDay.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
 				} else {
 					deleteFromDB(feedName);

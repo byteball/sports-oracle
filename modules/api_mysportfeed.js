@@ -10,7 +10,7 @@ const notifications = require('./notifications.js');
 var reloadInterval = 1000*3600*24;
 
 
-function getFixturesAndPushIntoCalendar (category, keyWord, url) {
+function getFixturesAndPushIntoCalendar (category, championship, url) {
 
 	var headers = {
 		"Authorization": "Basic " + btoa(conf.MySportsFeedsUser + ":" + conf.MySportsFeedsPw)
@@ -121,7 +121,7 @@ function getFixturesAndPushIntoCalendar (category, keyWord, url) {
 		};
 	}
 
-	calendar.addResultHelper(category, keyWord, resultHelper);
+	calendar.addResultHelper(category, championship, resultHelper);
 
 	
 	function convertMySportsFeedsTimeToMomentUTC(mySportsFeedsDate, mySportsFeedsTime) {
@@ -161,52 +161,52 @@ function getFixturesAndPushIntoCalendar (category, keyWord, url) {
 				if (firstCalendarLoading) {
 					throw Error("couldn't get events from MySportsFeedsCom " + url);
 				} else {
-					return notifications.notifyAdmin("I couldn't get " + keyWord + " calendar today", "");
+					return notifications.notifyAdmin("I couldn't get " + championship + " calendar today", "");
 				}
 			}
 
 			try {
-				var jsonResult = JSON.parse(body);
+				var parsedBody = JSON.parse(body);
 			} catch (e) {
 				if (firstCalendarLoading) {
 					throw Error("Couldn't parse  footballDataOrg, error: " + e);
 				} else {
-					return notifications.notifyAdmin("I couldn't parse " + keyWord + "calendar today", "");
+					return notifications.notifyAdmin("I couldn't parse " + championship + "calendar today", "");
 				}
 			}
-			var fixtures = jsonResult.fullgameschedule.gameentry;
+			var arrRawFixtures = parsedBody.fullgameschedule.gameentry;
 
-			if (fixtures.length == 0) {
+			if (arrRawFixtures.length == 0) {
 				if (firstCalendarLoading) {
 					throw Error("fixtures array empty, couldn't get fixtures from footballDataOrg");
 				} else {
-					return notifications.notifyAdmin("I couldn't get fixtures for " + keyWord + " today", "");
+					return notifications.notifyAdmin("I couldn't get fixtures for " + championship + " today", "");
 				}
 			}
 
 
-			var arrGames = fixtures.map(fixture => {
+			var arrFixtures = arrRawFixtures.map(fixture => {
 				return encodeFixture(fixture);
 
 			});
 
-			arrGames.forEach(function(game) {
-				if (typeof game === 'object') {
-					if (game.date.diff(moment(),'days') > -15 && game.date.diff(moment(),'days') < 30){
+			arrFixtures.forEach(function(fixture) {
+				if (typeof fixture === 'object') {
+					if (fixture.date.diff(moment(),'days') > -15 && fixture.date.diff(moment(),'days') < 30){
 						
-						if (calendar.getFixtureFromFeedName(game.feedName)){	//if feedname already in calendar then it's a doubleheaders, we need to differentiate the games
-							var initialFeedName = game.feedName;
-							if (calendar.getFixtureFromFeedName(game.feedName).date.isBefore(game.date)){
-								calendar.addFixture(category,keyWord,initialFeedName + "_G1",calendar.getFixtureFromFeedName(initialFeedName));
-								calendar.addFixture(category,keyWord,initialFeedName + "_G2",game);
+						if (calendar.getFixtureFromFeedName(fixture.feedName)){	//if feedname already in calendar then it's a doubleheaders, we need to differentiate the fixture
+							var initialFeedName = fixture.feedName;
+							if (calendar.getFixtureFromFeedName(fixture.feedName).date.isBefore(fixture.date)){
+								calendar.addFixture(category,championship,initialFeedName + "_G1",calendar.getFixtureFromFeedName(initialFeedName));
+								calendar.addFixture(category,championship,initialFeedName + "_G2",fixture);
 							}else{
 								
-								calendar.addFixture(category,keyWord,initialFeedName + "_G1",game);
-								calendar.addFixture(category,keyWord,initialFeedName + "_G2",calendar.getFixtureFromFeedName(initialFeedName));
+								calendar.addFixture(category,championship,initialFeedName + "_G1",fixture);
+								calendar.addFixture(category,championship,initialFeedName + "_G2",calendar.getFixtureFromFeedName(initialFeedName));
 							}
 							calendar.deleteFixture(initialFeedName);
 						} else {
-							calendar.addFixture(category, keyWord, game.feedName, game)
+							calendar.addFixture(category, championship, fixture.feedName, fixture)
 						}
 					}
 				}

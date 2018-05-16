@@ -8,7 +8,7 @@ const notifications = require('./notifications.js');
 var reloadInterval = 1000*3600*24;
 
 
-function getFixturesAndPushIntoCalendar(category, keyWord) {
+function getFixturesAndPushIntoCalendar(category, championship) {
 
 	var firstCalendarLoading = true;
 	var resultHelper = {};
@@ -47,7 +47,7 @@ function getFixturesAndPushIntoCalendar(category, keyWord) {
 
 	};
 
-	calendar.addResultHelper(category, keyWord, resultHelper);
+	calendar.addResultHelper(category, championship, resultHelper);
 	
 	function encodeOnlyNames(fight) {
 		let feedHomeTeamName = fight.fighter1_first_name.concat(fight.fighter1_last_name).toUpperCase();
@@ -71,7 +71,7 @@ function getFixturesAndPushIntoCalendar(category, keyWord) {
 				if (firstCalendarLoading) {
 					throw Error('couldn t get events from UFC ');
 				} else {
-					return notifications.notifyAdmin("I couldn't get " + keyWord + " events today", "");
+					return notifications.notifyAdmin("I couldn't get " + championship + " events today", "");
 				}
 			}
 
@@ -81,14 +81,14 @@ function getFixturesAndPushIntoCalendar(category, keyWord) {
 				if (firstCalendarLoading) {
 					throw Error('error parsing UFC events response: ' + e.toString() + ", response: " + body);
 				} else {
-					return notifications.notifyAdmin("I couldn't parse " + keyWord + " today", "");
+					return notifications.notifyAdmin("I couldn't parse " + championship + " today", "");
 				}
 			}
 			if (events.length == 0) {
 				if (firstCalendarLoading) {
 					throw Error('events array empty, couldn t get events from footballDataOrg');
 				} else {
-					return notifications.notifyAdmin("I couldn't get events from " + keyWord + " today", "");
+					return notifications.notifyAdmin("I couldn't get events from " + championship + " today", "");
 				}
 			}
 			events.forEach(function(event) {
@@ -107,16 +107,16 @@ function getFixturesAndPushIntoCalendar(category, keyWord) {
 						}
 
 						try {
-							var fights = JSON.parse(eventBody);
+							var parsedBody = JSON.parse(eventBody);
 						} catch (e) {
 							if (firstCalendarLoading) {
 								throw Error('error parsing UFC fights, response: ' + e.toString() + ", response: " + eventBody);
 							} else {
-								return notifications.notifyAdmin("I couldn't parse " + keyWord + " today", "");
+								return notifications.notifyAdmin("I couldn't parse " + championship + " today", "");
 							}
 						}
 
-						if (fights.length == 0) {
+						if (parsedBody.length == 0) {
 							if (firstCalendarLoading) {
 								throw Error("fights array empty, couldn t get fights from UFC event id" + event.id);
 							} else {
@@ -143,7 +143,7 @@ function getFixturesAndPushIntoCalendar(category, keyWord) {
 						var UTCtime = moment.utc(eventDate.format("YYYY-MM-DD") + ' ' + arrayLocalTimes[0], ['YYYY-MM-DD hha', 'YYYY-MM-DD hh:mma']);
 						UTCtime.add(timeShift, 'hours');
 
-						var arrGames = fights.map(fight => {
+						var arrFixtures = parsedBody.map(fight => {
 							let feedNameObject = encodeOnlyNames(fight);
 							feedNameObject.feedName += '_' + eventDate.format("YYYY-MM-DD");
 							feedNameObject.localDay = eventDate;
@@ -152,8 +152,8 @@ function getFixturesAndPushIntoCalendar(category, keyWord) {
 							return feedNameObject;
 						});
 
-						arrGames.forEach(function(game) {
-							calendar.addFixture(category, keyWord, game.feedName, game);
+						arrFixtures.forEach(function(fixture) {
+							calendar.addFixture(category, championship, fixture.feedName, fixture);
 						});
 
 						firstCalendarLoading = false;

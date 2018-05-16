@@ -7,7 +7,6 @@ const conf = require('byteballcore/conf.js');
 const commons = require('./commons.js');
 const notifications = require('./notifications.js');
 
-
 var reloadInterval = 1000*3600*24;
 var blackListedChampionships=[466];
 
@@ -16,7 +15,7 @@ function getAllChampionshipsAndPushIntoCalendar(){
 
 	getCurrentChampionshipsFromFootballDataOrg(blackListedChampionships,function(arrCurrentChampionShips) {
 		arrCurrentChampionShips.forEach(function(currentChampionShip) {
-			initFootballDataOrg(currentChampionShip.category, currentChampionShip.keyword, currentChampionShip.url);
+			initFootballDataOrg(currentChampionShip.category, currentChampionShip.championship, currentChampionShip.url);
 		});
 	});
 
@@ -39,7 +38,7 @@ function getCurrentChampionshipsFromFootballDataOrg(blacklist, handle) {
 			if (blacklist.indexOf(competition.id) == -1) {
 				arrCompetitions.push({
 					category: 'Soccer',
-					keyword: competition.league,
+					championship: competition.league,
 					url: competition._links.fixtures.href.replace('http:', 'https:')
 				});
 			}
@@ -50,7 +49,7 @@ function getCurrentChampionshipsFromFootballDataOrg(blacklist, handle) {
 }
 
 
-function initFootballDataOrg(category, keyWord, url) {
+function initFootballDataOrg(category, championship, url) {
 
 	var headers = {
 		'X-Auth-Token': conf.footballDataApiKey
@@ -93,7 +92,7 @@ function initFootballDataOrg(category, keyWord, url) {
 		}
 	};
 	
-	calendar.addResultHelper(category, keyWord, resultHelper);
+	calendar.addResultHelper(category, championship, resultHelper);
 	
 	function encodeFixture(fixture) {
 		let homeTeamName = commons.removeAbbreviations(fixture.homeTeamName);
@@ -125,36 +124,36 @@ function initFootballDataOrg(category, keyWord, url) {
 					if (firstCalendarLoading) {
 						throw Error('couldn t get fixtures from footballDataOrg ' + url);
 					} else {
-						return notifications.notifyAdmin("I couldn't get " + keyWord + " calendar today", "");
+						return notifications.notifyAdmin("I couldn't get " + championship + " calendar today", "");
 					}
 				}
 
 				try {
 					var jsonResult = JSON.parse(body);
-					var fixtures = jsonResult.fixtures;
+					var arrRawFixtures = jsonResult.fixtures;
 				} catch (e) {
 					if (firstCalendarLoading) {
 						throw Error('error parsing football-data response: ' + e.toString() + ", response: " + body);
 					} else {
-						return notifications.notifyAdmin("I couldn't parse " + keyWord + " today", "");
+						return notifications.notifyAdmin("I couldn't parse " + championship + " today", "");
 					}
 				}
-				if (fixtures.length == 0) {
+				if (arrRawFixtures.length == 0) {
 					if (firstCalendarLoading) {
 						throw Error('fixtures array empty, couldn t get fixtures from footballDataOrg');
 					} else {
-						return notifications.notifyAdmin("I couldn't get fixtures from " + keyWord + " today", "");
+						return notifications.notifyAdmin("I couldn't get fixtures from " + championship + " today", "");
 					}
 				}
 
 
-				var arrGames = fixtures.map(fixture => {
+				var arrFixtures = arrRawFixtures.map(fixture => {
 					return encodeFixture(fixture);
 				});
 
-				arrGames.forEach(function(game) {
-					if (game.date.diff(moment(),'days') > -15 && game.date.diff(moment(),'days') < 30){
-						calendar.addFixture(category, keyWord, game.feedName, game);
+				arrFixtures.forEach(function(fixture) {
+					if (fixture.date.diff(moment(),'days') > -15 && fixture.date.diff(moment(),'days') < 30){
+						calendar.addFixture(category, championship, fixture.feedName, fixture);
 					}
 				});
 

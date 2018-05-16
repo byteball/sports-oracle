@@ -6,7 +6,6 @@ const calendar = require('./calendar.js');
 const fs = require("fs");
 const notifications = require('./notifications.js');
 
-
 var soccerTeamsCorrespondence = {}
 fs.readFile('./soccerTeamsCorrespondence.json', (err, content) => {
 	if (err)
