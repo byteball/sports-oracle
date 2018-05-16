@@ -1,5 +1,7 @@
 /*jslint node: true */
 "use strict";
+const db = require('byteballcore/db.js');
+const async = require('async');
 
 function getTxtCommandButton(label, command) {
 	var text = "";
@@ -27,6 +29,22 @@ function removeAccents(str) {
 	return str.join('');
 }
 
+function deleteFromDB(feedName){
+
+	db.takeConnectionFromPool(function(conn) {
+		var arrQueries = [];
+		conn.addQuery(arrQueries, "BEGIN");
+		conn.addQuery(arrQueries, "DELETE FROM requested_fixtures WHERE feed_name=?",[feedName]);
+		conn.addQuery(arrQueries, "DELETE FROM devices_having_requested_fixture WHERE feed_name=?",[feedName]);
+		conn.addQuery(arrQueries, "COMMIT");
+		async.series(arrQueries, function() {
+			conn.release();
+		});
+	});
+	
+}
+
 exports.getTxtCommandButton = getTxtCommandButton;
 exports.removeAbbreviations = removeAbbreviations;
 exports.removeAccents = removeAccents;
+exports.deleteFromDB = deleteFromDB;

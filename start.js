@@ -146,14 +146,14 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 
 		resultHelper.process(parsedBody, feedName, function(errMainSource, result) {
 			if (errMainSource) {
-				notifications.notifyAdmin("There was an error getting result for " + feedName, "URL concerned: " + url + " error: " + err);
+				notifications.notifyAdmin("There was an error getting result for " + feedName, "URL concerned: " + url + " error: " + errMainSource);
 				setHasCriticalError();
 				return handle("Problem getting this result, admin is notified");
 			}
 
 			checkUsingSecondSource(championship, feedName, result.date, result.winnerCode, {
 				ifPostponed: () => {
-					deleteFromDB(feedName);
+					commons.deleteFromDB(feedName);
 					return handle("This result has been postponed.");
 				},
 				ifCriticalError: () => {
@@ -237,25 +237,12 @@ function notifyForDatafeedPosted(feedName, value) {
 				}
 			)
 
-			deleteFromDB(feedName);
+			commons.deleteFromDB(feedName);
 		}
 	);
 }
 
-function deleteFromDB(feedName){
 
-	db.takeConnectionFromPool(function(conn) {
-		var arrQueries = [];
-		conn.addQuery(arrQueries, "BEGIN");
-		conn.addQuery(arrQueries, "DELETE FROM requested_fixtures WHERE feed_name=?",[feedName]);
-		conn.addQuery(arrQueries, "DELETE FROM devices_having_requested_fixture WHERE feed_name=?",[feedName]);
-		conn.addQuery(arrQueries, "COMMIT");
-		async.series(arrQueries, function() {
-			conn.release();
-		});
-	});
-	
-}
 
 
 function findFixturesToCheckAndGetResult() {
@@ -274,7 +261,7 @@ function findFixturesToCheckAndGetResult() {
 						});
 					} else {
 						notifications.notifyAdmin("Championship " + row.feed_name + " not in calendar anymore, can't get result", "");
-						deleteFromDB(row.feed_name);
+						commons.deleteFromDB(row.feed_name);
 					}
 				}
 			)
@@ -360,14 +347,9 @@ function getResponseForFeedAlreadyInDAG(fixture, result, is_stable) {
 
 function checkUsingSecondSource(championship, feedName, UTCdate, result, callbacks) {
 
-	if (theScore.canCheckChampionship()) {
-
-		theScore.checkResult(championship, feedName, UTCdate, result, callbacks);
-
-	} else {
-		return callbacks.ifOK();
-	}
-
+	if (theScore.canCheckChampionship(championship)) 
+		return theScore.checkResult(championship, feedName, UTCdate, result, callbacks);
+	return callbacks.ifOK();
 }
 
 

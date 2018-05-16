@@ -41,10 +41,8 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 				notifications.notifyAdmin("Result for event id " + arrayEventIds[0] + " can't be parsed from thescore.com", body);
 				return callbacks.ifCriticalError();
 			}
-			
 
-
-			if (parsedBody.status && parsedBody.status == "final") {
+			if (parsedBody.status && (parsedBody.status == "final" || parsedBody.status == "postponed")) {
 				
 				if (soccerTeamsCorrespondence[championship]){
 					if (soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name] && soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name]){
@@ -60,8 +58,13 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 				}
 				
 				if (feedHomeTeamName === feedName.split("_")[0] && feedAwayTeamName == feedName.split("_")[1] 
-					&& moment(parsedBody.game_date).isSameOrAfter(UTCdate.subtract(1, 'hours')) && moment(parsedBody.game_date).isSameOrBefore(UTCdate.subtract(3, 'hours'))) {
+					&& moment(parsedBody.game_date).isSameOrAfter(UTCdate.subtract(1, 'hours')) && moment(parsedBody.game_date).isSameOrBefore(UTCdate.add(3, 'hours'))) {
 
+					if (parsedBody.status == "postponed") {
+						notifications.notifyAdmin(feedName + " has been postponed", ' ');
+						return callbacks.ifPostponed();
+					}
+					
 					if (parsedBody.box_score.score.home.score > parsedBody.box_score.score.away.score && result == feedHomeTeamName) {
 						return callbacks.ifOK();
 					}
@@ -84,7 +87,6 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 				return callbacks.ifCriticalError();
 
 			}
-
 
 		});
 
