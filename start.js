@@ -167,9 +167,9 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 					return handle("Inconsistency found for result, admin is notified.");
 				},
 				ifOK: () => {
-					datafeeds.reliablyPost({
-						feedName: result.winnerCode
-					});
+					var datafeed = {};
+					datafeed[feedName] = result.winnerCode;
+					datafeeds.reliablyPost(datafeed);
 					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.localDay ? " on " + result.localDay.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
 				}
 			});
