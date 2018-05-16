@@ -1,13 +1,13 @@
 /*jslint node: true */
 "use strict";
-var moment = require('moment');
-var request = require('request');
+const moment = require('moment');
+const request = require('request');
 const async = require('async');
-var conf = require('byteballcore/conf.js');
-var db = require('byteballcore/db.js');
-var eventBus = require('byteballcore/event_bus.js');
-var headlessWallet = require('headless-byteball');
-var desktopApp = require('byteballcore/desktop_app.js');
+const conf = require('byteballcore/conf.js');
+const db = require('byteballcore/db.js');
+const eventBus = require('byteballcore/event_bus.js');
+const headlessWallet = require('headless-byteball');
+const desktopApp = require('byteballcore/desktop_app.js');
 const notifications = require('./modules/notifications.js');
 const commons = require('./modules/commons.js');
 const calendar = require('./modules/calendar.js');
@@ -124,12 +124,16 @@ function searchFixtures(championship, searchedString) {
 
 function retrieveAndPostResult(url, championship, feedName, resultHelper, handle) {
 
+	function setHasCriticalError(){
+		db.query("UPDATE requested_fixtures SET has_critical_error=1 WHERE feed_name=?", [feedName]);
+	}
+	
 	request({
 		url: url,
 		headers: resultHelper.headers
 	}, function(error, response, body) {
 		if (error || response.statusCode !== 200) {
-			handle("Error, can't get info from data provider");
+			handle("Error, can't get info from data provider. Please try later.");
 			return;
 		}
 		try {
@@ -143,7 +147,7 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 		resultHelper.process(parsedBody, feedName, function(errMainSource, result) {
 			if (errMainSource) {
 				notifications.notifyAdmin("There was an error getting result for " + feedName, "URL concerned: " + url + " error: " + err);
-				db.query("UPDATE requested_fixtures SET has_critical_error=1 WHERE feed_name=?", [feedName]);
+				setHasCriticalError();
 				return handle("Problem getting this result, admin is notified");
 			}
 
@@ -151,7 +155,7 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 
 				if (errSecondSource) {
 					if (errSecondSource.isCriticalError) {
-						db.query("UPDATE requested_fixtures SET has_critical_error=1 WHERE feed_name=?", [feedName]);
+						setHasCriticalError()
 					}
 					return handle(errSecondSource.msg);
 
@@ -163,7 +167,7 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 					});
 					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.localDay ? " on " + result.localDay.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
 				} else {
-					deleteFromDB(feedName);
+					setHasCriticalError();
 					notifications.notifyAdmin("Check failed for " + feedName, " ");
 					return handle("Inconsistency found for result, admin is notified");
 
@@ -203,7 +207,7 @@ function getFeedStatus(from_address, feedName, handle) {
 				if (!is_stable) {
 					insertIntoRequestedFixtures();
 				}
-				handle(getResponseForFeedAlreadyInDAG(fixture.homeTeam, fixture.awayTeam, fixture.date.format("YYYY-MM-DD HH:mm:ss"), value, is_stable));
+				handle(getResponseForFeedAlreadyInDAG(fixture, value, is_stable));
 			} else {
 				insertIntoRequestedFixtures();
 				var device = require('byteballcore/device.js');
@@ -260,7 +264,7 @@ function findFixturesToCheckAndGetResult() {
 		"SELECT feed_name,result_url,(strftime('%s','now') - strftime('%s',fixture_date) - hours_to_wait * 3600) AS time_from_first_check FROM requested_fixtures WHERE  \n\
 		(fixture_date < datetime('now', '-' || hours_to_wait ||' hours') AND has_critical_error=0) \n\
 		OR \n\
-		(time_from_first_check>0 AND time_from_first_check/3600.0*12.0 LIKE '%.0%' AND has_critical_error=1)",
+		(time_from_first_check/3600.0*12.0 LIKE '%.0%' AND has_critical_error=1)", //try to recheck every 12 hours fixtures having critical errors
 		function(rows) {
 			rows.forEach(
 				function(row) {
@@ -344,9 +348,9 @@ eventBus.on('text', function(from_address, text) {
 
 
 
-function getResponseForFeedAlreadyInDAG(homeTeamName, awayTeamName, date, result, is_stable) {
-	return homeTeamName + ' vs ' + awayTeamName + '\n' +
-		'on ' + moment.utc(date).format("DD MMMM YYYY") + '\n' +
+function getResponseForFeedAlreadyInDAG(fixture, result, is_stable) {
+	return fixture.homeTeamName + ' vs ' + fixture.awayTeamName + '\n' +
+		'on ' + fixture.localDay.format("DD MMMM YYYY") + '\n' +
 		(result === 'draw' ? 'draw' : result + ' won') +
 		(is_stable ?
 			"\n\nThe data is already in the database, you can unlock your smart contract now." :
@@ -357,7 +361,7 @@ function getResponseForFeedAlreadyInDAG(homeTeamName, awayTeamName, date, result
 
 function checkUsingSecondSource(championship, feedName, UTCdate, result, handle) {
 
-	if (theScore.canCheckChampionship) {
+	if (theScore.canCheckChampionship()) {
 
 		theScore.checkResult(championship, feedName, UTCdate, result, function(error, isOK) {
 			return handle(error, isOK);
