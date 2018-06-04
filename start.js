@@ -246,6 +246,7 @@ function notifyForDatafeedPosted(feedName, value) {
 
 
 function findFixturesToCheckAndGetResult() {
+
 	db.query(
 		"SELECT feed_name,result_url,(strftime('%s','now') - strftime('%s',fixture_date) - hours_to_wait * 3600) AS time_from_first_check FROM requested_fixtures WHERE  \n\
 		(fixture_date < datetime('now', '-' || hours_to_wait ||' hours') AND has_critical_error=0) \n\
@@ -254,6 +255,8 @@ function findFixturesToCheckAndGetResult() {
 		function(rows) {
 			rows.forEach(
 				function(row) {
+					if (calendar.isThereChampionshipReloading())
+						return;
 					if (calendar.getFixtureFromFeedName(row.feed_name)) {
 						datafeeds.readExisting(row.feed_name, function(exists) {
 							if(!exists)

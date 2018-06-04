@@ -4,6 +4,45 @@ const _ = require('lodash');
 
 var calendar = {};
 
+
+function deleteAllFixturesFromChampionship(championship) {
+
+	let category = getCategoryFromChampionship(championship);
+	
+	if (calendar[category] && calendar[category][championship])
+		calendar[category][championship].fixtures = {};
+
+}
+
+
+function setReloadingFlag(championship, state){
+	
+	let category = getCategoryFromChampionship(championship);
+	
+	if (!calendar[category])
+		calendar[category] = {};
+	
+	if (!calendar[category][championship])
+		calendar[category][championship] = {};
+	
+	calendar[category][championship].isReloading = state;
+	
+	
+}
+
+
+function isThereChampionshipReloading() {
+
+	for (var cat in calendar) {
+		for (var champ in calendar[cat]) {
+			if (calendar[cat][champ].isReloading)
+				return true;
+		}
+
+	}
+	return false;
+}
+
 function addFixture(category, championship, feedName, fixtureDescription) {
 
 	if (!calendar[category])
@@ -159,3 +198,6 @@ exports.getCategoryFromFeedName = getCategoryFromFeedName;
 exports.getCategoryFromChampionship = getCategoryFromChampionship;
 exports.getChampionshipFromFeedName = getChampionshipFromFeedName;
 exports.isAmericanDST = isAmericanDST;
+exports.setReloadingFlag = setReloadingFlag;
+exports.isThereChampionshipReloading = isThereChampionshipReloading;
+exports.deleteAllFixturesFromChampionship = deleteAllFixturesFromChampionship;

@@ -151,11 +151,12 @@ function getFixturesAndPushIntoCalendar(category, championship) {
 							feedNameObject.urlResult = 'http://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights';
 							return feedNameObject;
 						});
-
+						calendar.setReloadingFlag(championship, true);
+						calendar.deleteAllFixturesFromChampionship(championship);
 						arrFixtures.forEach(function(fixture) {
 							calendar.addFixture(category, championship, fixture.feedName, fixture);
 						});
-
+						calendar.setReloadingFlag(championship, false);
 						firstCalendarLoading = false;
 
 					});

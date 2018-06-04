@@ -189,7 +189,8 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 				return encodeFixture(fixture);
 
 			});
-
+			calendar.setReloadingFlag(championship, true);
+			calendar.deleteAllFixturesFromChampionship(championship);
 			arrFixtures.forEach(function(fixture) {
 				if (typeof fixture === 'object') {
 					if (fixture.date.diff(moment(),'days') > -15 && fixture.date.diff(moment(),'days') < 30){
@@ -212,6 +213,7 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 				}
 			});
 
+			calendar.setReloadingFlag(championship, false);
 			firstCalendarLoading = false;
 		});
 
