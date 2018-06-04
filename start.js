@@ -124,6 +124,9 @@ function searchFixtures(championship, searchedString) {
 
 function retrieveAndPostResult(url, championship, feedName, resultHelper, handle) {
 
+	if (!resultHelper || !championship)
+		return handle("Internal error, please retry later");
+	
 	function setHasCriticalError(){
 		db.query("UPDATE requested_fixtures SET has_critical_error=1 WHERE feed_name=?", [feedName]);
 	}
@@ -186,6 +189,9 @@ function getFeedStatus(from_address, feedName, handle) {
 	var resultHelper = calendar.getResultHelperFromFeedName(feedName);
 	var championship = calendar.getChampionshipFromFeedName(feedName);
 	
+	if (!fixture || !resultHelper || !championship)
+		return handle("Internal error, please retry later");
+	
 	function insertIntoRequestedFixtures(){
 		db.takeConnectionFromPool(function(conn) {
 			var arrQueries = [];
@@ -211,7 +217,7 @@ function getFeedStatus(from_address, feedName, handle) {
 				insertIntoRequestedFixtures();
 				var device = require('byteballcore/device.js');
 				device.sendMessageToDevice(from_address, 'text', "Result is being retrieved, please wait.");
-				retrieveAndPostResult(fixture.urlResult, calendar.getChampionshipFromFeedName(feedName), feedName, resultHelper, function(txt) {
+				retrieveAndPostResult(fixture.urlResult, championship, feedName, resultHelper, function(txt) {
 					handle(txt);
 				});
 			}
