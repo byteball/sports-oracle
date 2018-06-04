@@ -29,7 +29,7 @@ mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mys
 UfcCom.getFixturesAndPushIntoCalendar('Mixed Martial Arts', 'UFC');
 
 footballDataOrg.getAllChampionshipsAndPushIntoCalendar();
-
+footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','WC', 'https://api.football-data.org/v1/competitions/467/fixtures'); //force world cup
 
 if (conf.bRunWitness)
 	require('byteball-witness');

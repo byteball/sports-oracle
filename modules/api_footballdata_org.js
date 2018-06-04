@@ -15,7 +15,7 @@ function getAllChampionshipsAndPushIntoCalendar(){
 
 	getCurrentChampionshipsFromFootballDataOrg(blackListedChampionships,function(arrCurrentChampionShips) {
 		arrCurrentChampionShips.forEach(function(currentChampionShip) {
-			initFootballDataOrg(currentChampionShip.category, currentChampionShip.championship, currentChampionShip.url);
+			getFixturesAndPushIntoCalendar(currentChampionShip.category, currentChampionShip.championship, currentChampionShip.url);
 		});
 	});
 
@@ -49,7 +49,7 @@ function getCurrentChampionshipsFromFootballDataOrg(blacklist, handle) {
 }
 
 
-function initFootballDataOrg(category, championship, url) {
+function getFixturesAndPushIntoCalendar(category, championship, url) {
 
 	var headers = {
 		'X-Auth-Token': conf.footballDataApiKey
@@ -171,3 +171,4 @@ function initFootballDataOrg(category, championship, url) {
 
 
 exports.getAllChampionshipsAndPushIntoCalendar = getAllChampionshipsAndPushIntoCalendar;
+exports.getFixturesAndPushIntoCalendar = getFixturesAndPushIntoCalendar;
