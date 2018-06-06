@@ -31,7 +31,7 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 			} else {
 				if (response.gameboxscore.inningSummary.inningTotals) {
 					let fixture = encodeFixture(response.gameboxscore.game);
-					if (fixture.feedName === expectedFeedName){
+					if (fixture.feedName === expectedFeedName.replace('_G1','').replace('_G2','')){
 						if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) > Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
 							fixture.winner = fixture.awayTeam;
 							fixture.winnerCode = fixture.feedAwayTeamName;
