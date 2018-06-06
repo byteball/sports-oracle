@@ -19,7 +19,7 @@ function getFixturesAndPushIntoCalendar(category, championship) {
 		response.forEach(function(fight) {
 			let fixture = encodeOnlyNames(fight);
 
-			if (expectedFeedName.indexOf(fixture.feedName) > -1) {
+			if (fixture && expectedFeedName.indexOf(fixture.feedName) > -1) {
 				fightFound = true;
 				if (fight.fighter1_is_winner || fight.fighter2_is_winner) {
 					if (fight.fighter1_is_winner) {
@@ -50,14 +50,18 @@ function getFixturesAndPushIntoCalendar(category, championship) {
 	calendar.addResultHelper(category, championship, resultHelper);
 	
 	function encodeOnlyNames(fight) {
-		let feedHomeTeamName = fight.fighter1_first_name.concat(fight.fighter1_last_name).toUpperCase();
-		let feedAwayTeamName = fight.fighter2_first_name.concat(fight.fighter2_last_name).toUpperCase();
-		return {
-			homeTeam: fight.fighter1_first_name + " " + fight.fighter1_last_name,
-			awayTeam: fight.fighter2_first_name + " " + fight.fighter2_last_name,
-			feedHomeTeamName: feedHomeTeamName,
-			feedAwayTeamName: feedAwayTeamName,
-			feedName: feedHomeTeamName + '_' + feedAwayTeamName
+		if (fight.fighter1_first_name && fight.fighter2_first_name && typeof fight.fighter1_first_name == "string" && typeof fight.fighter2_first_name == "string"){
+			let feedHomeTeamName = fight.fighter1_first_name.concat(fight.fighter1_last_name).toUpperCase();
+			let feedAwayTeamName = fight.fighter2_first_name.concat(fight.fighter2_last_name).toUpperCase();
+			return {
+				homeTeam: fight.fighter1_first_name + " " + fight.fighter1_last_name,
+				awayTeam: fight.fighter2_first_name + " " + fight.fighter2_last_name,
+				feedHomeTeamName: feedHomeTeamName,
+				feedAwayTeamName: feedAwayTeamName,
+				feedName: feedHomeTeamName + '_' + feedAwayTeamName
+			}
+		} else {
+			return null;
 		}
 	}
 
@@ -145,15 +149,18 @@ function getFixturesAndPushIntoCalendar(category, championship) {
 
 						var arrFixtures = parsedBody.map(fight => {
 							let feedNameObject = encodeOnlyNames(fight);
-							feedNameObject.feedName += '_' + eventDate.format("YYYY-MM-DD");
-							feedNameObject.localDay = eventDate;
-							feedNameObject.date = UTCtime;
-							feedNameObject.urlResult = 'http://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights';
-							return feedNameObject;
+							if (feedNameObject){
+								feedNameObject.feedName += '_' + eventDate.format("YYYY-MM-DD");
+								feedNameObject.localDay = eventDate;
+								feedNameObject.date = UTCtime;
+								feedNameObject.urlResult = 'http://ufc-data-api.ufc.com/api/v3/iphone/events/' + event.id + '/fights';
+								return feedNameObject;
+							}
 						});
 						calendar.setReloadingFlag(championship, true);
 						calendar.deleteAllFixturesFromChampionship(championship);
 						arrFixtures.forEach(function(fixture) {
+							if (fixture)
 							calendar.addFixture(category, championship, fixture.feedName, fixture);
 						});
 						calendar.setReloadingFlag(championship, false);
