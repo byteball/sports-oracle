@@ -31,7 +31,7 @@
 		"Troyes": "TROYES",
 		"Stade Rennes": "STADERENNAIS",
 		"St. Etienne": "SAINT-ÉTIENNE",
-		"OGC Nice": "NICE",
+		"OGC Nice": "DENICECÔTED'AZUR",
 		"Lyon": "OLYMPIQUELYONNAIS",
 		"Strasbourg": "STRASBOURGALSACE",
 		"Montpellier HSC": "MONTPELLIERHÉRAULT",
@@ -43,7 +43,9 @@
 		"Angers": "ANGERS",
 		"FC Girondins Bordeaux": "GIRONDINSDEBORDEAUX",
 		"Marseille": "OLYMPIQUEDEMARSEILLE",
-		"Dijon": "DIJON"
+		"Dijon": "DIJON",
+		"Nîmes": "NÎMESOLYMPIQUE",
+		"Stade Reims": "STADEDEREIMS"
 	},
 	"BL1": {
 		"theScoreKeyURL": "bund",
@@ -112,41 +114,7 @@
 		"FC Crotone": "CROTONE",
 		"AC Milan": "MILAN"
 	},
-	"CL": {
-		"theScoreKeyURL":"chlg",
-		"Benfica": "SLBENFICA",
-		"CSKA Moscow": "CSKAMOSCOW",
-		"Olympiacos": "OLYMPIACOSF.C.",
-		"Sporting CP": "SPORTINGCP",
-		"Barcelona": "BARCELONA",
-		"Juventus": "JUVENTUSTURIN",
-		"Roma": "ROMA",
-		"Atletico Madrid": "CLUBATLÉTICODEMADRID",
-		"Chelsea": "CHELSEA",
-		"FK Qarabag": "QARABAGAGDAMFK",
-		"Celtic": "CELTIC",
-		"Paris SG": "PARISSAINT-GERMAIN",
-		"Bayern Munich": "BAYERNMÜNCHEN",
-		"Anderlecht": "RSCANDERLECHT",
-		"Manchester United": "MANCHESTERUNITED",
-		"FC Basel": "BASEL",
-		"Real Madrid": "REALMADRID",
-		"Apoel Nicosia": "APOELNICOSIA",
-		"RB Leipzig": "REDBULLLEIPZIG",
-		"AS Monaco": "MONACO",
-		"FC Porto": "PORTO",
-		"Besiktas": "BESIKTASJK",
-		"Shakhtar Donetsk": "SHAKHTARDONETSK",
-		"Napoli": "SSCNAPOLI",
-		"Feyenoord": "FEYENOORDROTTERDAM",
-		"Manchester City": "MANCHESTERCITY",
-		"NK Maribor": "NKMARIBOR",
-		"Spartak Moscow": "SPARTAKMOSKVA",
-		"Liverpool": "LIVERPOOL",
-		"Sevilla": "SEVILLA",
-		"Tottenham Hotspur": "TOTTENHAMHOTSPUR",
-		"Borussia Dortmund": "BORUSSIADORTMUND"
-	},
+
 	"WC": {
 		"theScoreKeyURL":"worldcup",
 		"Argentina": "ARGENTINA",
@@ -184,3 +152,5 @@
 	}
 	
 }
+
+
