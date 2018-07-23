@@ -20,17 +20,20 @@ const theScore = require('./modules/api_thescore.js');
 
 var assocPeers = [];
 
+setTimeout(loadChampionships,500);
 
-//------The different feeds are added to the calendar
-//------The 2 first arguments specify category and keyword
-mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2018-regular/');
-//mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2018-playoff/');
-//mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2018-playoff/');
-UfcCom.getFixturesAndPushIntoCalendar('Mixed Martial Arts', 'UFC');
+function loadChampionships(){
+	//------The different feeds are added to the calendar
+	//------The 2 first arguments specify category and keyword
+	mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2018-regular/');
+	//mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2018-playoff/');
+	//mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2018-playoff/');
+	UfcCom.getFixturesAndPushIntoCalendar('Mixed Martial Arts', 'UFC');
 
-footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CL', 'https://api.football-data.org/v2/competitions/2001/matches');
-footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','L1', 'https://api.football-data.org/v2/competitions/2015/matches');
-footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BSA', 'https://api.football-data.org/v2/competitions/2013/matches')
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CL', 'https://api.football-data.org/v2/competitions/2001/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','L1', 'https://api.football-data.org/v2/competitions/2015/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BSA', 'https://api.football-data.org/v2/competitions/2013/matches')
+}
 
 if (conf.bRunWitness)
 	require('byteball-witness');
