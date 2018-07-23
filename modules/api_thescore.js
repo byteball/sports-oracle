@@ -14,7 +14,7 @@ fs.readFile('./soccerTeamsCorrespondence.json', (err, content) => {
 });
 
 function canCheckChampionship(championship){
-	if (championship == 'NBA' || championship == 'MLB' || championship == 'NHL' || championship == 'NFL' || soccerTeamsCorrespondence[championship])
+	if (championship == 'NBA' || championship == 'MLB' || championship == 'NHL' || championship == 'NFL')
 		return true;
 	return false;
 	
