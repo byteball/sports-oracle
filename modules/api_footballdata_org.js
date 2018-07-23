@@ -56,23 +56,27 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 	calendar.addResultHelper(category, championship, resultHelper);
 	
 	function encodeFixture(fixture) {
-		let homeTeamName = commons.removeAbbreviations(fixture.homeTeam.name).replace(/[()]/g, '');
-		let awayTeamName = commons.removeAbbreviations(fixture.awayTeam.name).replace(/[()]/g, '');
-		let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
-		let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
-		let localDay = moment.utc(fixture.utcDate);
-		if (fixture.season.id == 2013){ //for bresil championship we convert UTC time to local time approximately
-			localDay.subtract(4, 'hours');
-		}
-		return {
-			homeTeam: homeTeamName,
-			awayTeam: awayTeamName,
-			feedHomeTeamName: feedHomeTeamName,
-			feedAwayTeamName: feedAwayTeamName,
-			feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + localDay.format("YYYY-MM-DD"),
-			urlResult: "http://api.football-data.org/v2/matches/"+ fixture.id,
-			date: moment.utc(fixture.utcDate),
-			localDay: localDay
+		if (fixture.homeTeam && fixture.homeTeam.name){
+			let homeTeamName = commons.removeAbbreviations(fixture.homeTeam.name).replace(/[()]/g, '');
+			let awayTeamName = commons.removeAbbreviations(fixture.awayTeam.name).replace(/[()]/g, '');
+			let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
+			let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
+			let localDay = moment.utc(fixture.utcDate);
+			if (fixture.season.id == 2013){ //for bresil championship we convert UTC time to local time approximately
+				localDay.subtract(4, 'hours');
+			}
+			return {
+				homeTeam: homeTeamName,
+				awayTeam: awayTeamName,
+				feedHomeTeamName: feedHomeTeamName,
+				feedAwayTeamName: feedAwayTeamName,
+				feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + localDay.format("YYYY-MM-DD"),
+				urlResult: "http://api.football-data.org/v2/matches/"+ fixture.id,
+				date: moment.utc(fixture.utcDate),
+				localDay: localDay
+			}
+		} else {
+			return null;
 		}
 	}
 
@@ -115,7 +119,7 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 				calendar.deleteAllFixturesFromChampionship(championship);
 			
 				arrFixtures.forEach(function(fixture) {
-					if (fixture.date.diff(moment(),'days') > -15 && fixture.date.diff(moment(),'days') < 30){
+					if (fixture && fixture.date.diff(moment(),'days') > -15 && fixture.date.diff(moment(),'days') < 30){
 						calendar.addFixture(category, championship, fixture.feedName, fixture);
 					}
 				});
