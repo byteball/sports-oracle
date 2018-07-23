@@ -6,9 +6,16 @@ const calendar = require('./calendar.js');
 const conf = require('byteballcore/conf.js');
 const commons = require('./commons.js');
 const notifications = require('./notifications.js');
+const fs = require('fs');
 
 var reloadInterval = 1000*3600*24;
 
+var assocShortNames = {}
+fs.readFile('./soccerShortNames.json', (err, content) => {
+	if (err)
+		throw Error("soccerShortNames.json" + err);
+	assocShortNames = JSON.parse(content);
+});
 
 function getFixturesAndPushIntoCalendar(category, championship, url) {
 
@@ -56,9 +63,9 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 	calendar.addResultHelper(category, championship, resultHelper);
 	
 	function encodeFixture(fixture) {
-		if (fixture.homeTeam && fixture.homeTeam.name){
-			let homeTeamName = commons.removeAbbreviations(fixture.homeTeam.name).replace(/[()]/g, '');
-			let awayTeamName = commons.removeAbbreviations(fixture.awayTeam.name).replace(/[()]/g, '');
+		if (fixture.homeTeam && fixture.homeTeam.id && assocShortNames[fixture.homeTeam.id] && fixture.awayTeam.id && assocShortNames[fixture.awayTeam.id]){
+			let homeTeamName = commons.removeAbbreviations(assocShortNames[fixture.homeTeam.id]).replace(/[()]/g, '');
+			let awayTeamName = commons.removeAbbreviations(assocShortNames[fixture.awayTeam.id]).replace(/[()]/g, '');
 			let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
 			let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
 			let localDay = moment.utc(fixture.utcDate);
