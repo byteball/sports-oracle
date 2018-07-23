@@ -24,12 +24,13 @@ var assocPeers = [];
 //------The different feeds are added to the calendar
 //------The 2 first arguments specify category and keyword
 mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2018-regular/');
-mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2018-playoff/');
-mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2018-playoff/');
+//mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2018-playoff/');
+//mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2018-playoff/');
 UfcCom.getFixturesAndPushIntoCalendar('Mixed Martial Arts', 'UFC');
 
-footballDataOrg.getAllChampionshipsAndPushIntoCalendar();
-footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','WC', 'https://api.football-data.org/v1/competitions/467/fixtures'); //force world cup
+footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CL', 'https://api.football-data.org/v2/competitions/2001/matches');
+footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','L1', 'https://api.football-data.org/v2/competitions/2015/matches');
+footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BSA', 'https://api.football-data.org/v2/competitions/2013/matches')
 
 if (conf.bRunWitness)
 	require('byteball-witness');
@@ -296,21 +297,32 @@ eventBus.on('text', function(from_address, text) {
 			step: "home",
 		};
 	}
-
+	
+/*
+* if return home
+*/
 	if (text == "home") {
 		assocPeers[from_address].step = 'home';
 	}
 
+/*
+* if JSON calendar requested
+*/	
 	if (text == "/JSON") {
 		return device.sendMessageToDevice(from_address, 'text', calendar.getPublicCalendar());
 	}
 
-	 if(headlessWallet.isControlAddress(from_address)){
+/*
+* if device is admin
+*/	
+	if (headlessWallet.isControlAddress(from_address)){
 		if (administration.processCmd(from_address, assocPeers, text))
 			return;
 	 }
-	
-		
+
+/*
+* if championship requested
+*/
 	if (calendar.isExistingChampionship(text)){
 		assocPeers[from_address].step = "searchingFixture";
 		assocPeers[from_address].championship = text;
@@ -318,6 +330,9 @@ eventBus.on('text', function(from_address, text) {
 	}
 
 
+/*
+* if fixture requested
+*/
 	if (calendar.getFixtureFromFeedName(text)) {
 		getFeedStatus(from_address, text, function(response) {
 			device.sendMessageToDevice(from_address, 'text', response);
@@ -326,6 +341,9 @@ eventBus.on('text', function(from_address, text) {
 	}
 
 
+/*
+* if searching into championship
+*/
 	if (assocPeers[from_address].step == "searchingFixture") {
 
 		if (text == "last") {

@@ -8,45 +8,19 @@ const commons = require('./commons.js');
 const notifications = require('./notifications.js');
 
 var reloadInterval = 1000*3600*24;
-var blackListedChampionships=[466];
-
-
-function getAllChampionshipsAndPushIntoCalendar(){
-
-	getCurrentChampionshipsFromFootballDataOrg(blackListedChampionships,function(arrCurrentChampionShips) {
-		arrCurrentChampionShips.forEach(function(currentChampionShip) {
-			getFixturesAndPushIntoCalendar(currentChampionShip.category, currentChampionShip.championship, currentChampionShip.url);
+/*
+	var headers = {
+		'X-Auth-Token': conf.footballDataApiKey
+	};
+console.log(headers);
+		request({
+				url: "http://api.football-data.org/v2/competitions/2001/matches",
+				headers: headers
+			}, function(error, response, body) {
+			
+			console.log(body);
 		});
-	});
-
-}
-
-function getCurrentChampionshipsFromFootballDataOrg(blacklist, handle) {
-	var arrCompetitions = [];
-	request({
-		url: 'https://api.football-data.org/v1/competitions',
-		headers: {
-			'X-Auth-Token': conf.footballDataApiKey
-		}
-	}, function(error, response, body) {
-		if (error || response.statusCode !== 200) {
-			throw Error('couldn t get current championships from footballDataOrg');
-		}
-
-		var competitions = JSON.parse(body);
-		competitions.forEach(function(competition) {
-			if (blacklist.indexOf(competition.id) == -1) {
-				arrCompetitions.push({
-					category: 'Soccer',
-					championship: competition.league,
-					url: competition._links.fixtures.href.replace('http:', 'https:')
-				});
-			}
-		});
-		handle(arrCompetitions);
-	});
-
-}
+*/
 
 
 function getFixturesAndPushIntoCalendar(category, championship, url) {
@@ -62,19 +36,19 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 	resultHelper.hoursToWaitBeforeGetResult = 4;
 	resultHelper.rules = "The oracle will post the name of winning team after 90 minutes play. This includes added injury or stoppage time but doesn't include extra-time, penalty shootouts or golden goal. If the match is rescheduled to another day, no result will be posted.";
 	resultHelper.process = function(response, expectedFeedName, handle) {
-		if (response.fixture.status == "FINISHED") {
-			if (response.fixture.result && response.fixture.result.goalsAwayTeam != null) {
-					let fixture = encodeFixture(response.fixture);
+		if (response.status == "FINISHED") {
+			if (response.score && response.score.fullTime.homeTeam != null) {
+					let fixture = encodeFixture(response);
 						if (fixture.feedName === expectedFeedName){
-							if (Number(response.fixture.result.goalsAwayTeam) > Number(response.fixture.result.goalsHomeTeam)) {
+							if (Number(response.score.fullTime.awayTeam) > Number(response.score.fullTime.homeTeam)) {
 								fixture.winner = fixture.awayTeam;
 								fixture.winnerCode = fixture.feedAwayTeamName;
 							}
-							if (Number(response.fixture.result.goalsAwayTeam) < Number(response.fixture.result.goalsHomeTeam)) {
+							if (Number(response.score.fullTime.awayTeam) < Number(response.score.fullTime.homeTeam)) {
 								fixture.winner = fixture.homeTeam;
 								fixture.winnerCode = fixture.feedHomeTeamName;
 							}
-							if (Number(response.fixture.result.goalsAwayTeam) == Number(response.fixture.result.goalsHomeTeam)) {
+							if (Number(response.score.fullTime.awayTeam) == Number(response.score.fullTime.homeTeam)) {
 								fixture.winner = 'draw';
 								fixture.winnerCode = 'draw';
 							}
@@ -95,12 +69,12 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 	calendar.addResultHelper(category, championship, resultHelper);
 	
 	function encodeFixture(fixture) {
-		let homeTeamName = commons.removeAbbreviations(fixture.homeTeamName);
-		let awayTeamName = commons.removeAbbreviations(fixture.awayTeamName);
+		let homeTeamName = commons.removeAbbreviations(fixture.homeTeam.name);
+		let awayTeamName = commons.removeAbbreviations(fixture.awayTeam.name);
 		let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
 		let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
-		let localDay = moment.utc(fixture.date);
-		if (fixture._links.competition.href == "http://api.football-data.org/v1/competitions/444"){ //for bresil championship we convert UTC time to local time approximately
+		let localDay = moment.utc(fixture.utcDate);
+		if (fixture.season.id == 2013){ //for bresil championship we convert UTC time to local time approximately
 			localDay.subtract(4, 'hours');
 		}
 		return {
@@ -109,8 +83,8 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 			feedHomeTeamName: feedHomeTeamName,
 			feedAwayTeamName: feedAwayTeamName,
 			feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + localDay.format("YYYY-MM-DD"),
-			urlResult: fixture._links.self.href.replace('http:', 'https:'),
-			date: moment.utc(fixture.date),
+			urlResult: "http://api.football-data.org/v2/matches/"+ fixture.id,
+			date: moment.utc(fixture.utcDate),
 			localDay: localDay
 		}
 	}
@@ -122,7 +96,7 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 			}, function(error, response, body) {
 				if (error || response.statusCode !== 200) {
 					if (firstCalendarLoading) {
-						throw Error('couldn t get fixtures from footballDataOrg ' + url);
+						throw Error('couldn t get fixtures from footballDataOrg ' + url + '\n' + body);
 					} else {
 						return notifications.notifyAdmin("I couldn't get " + championship + " calendar today", "");
 					}
@@ -130,7 +104,7 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 
 				try {
 					var jsonResult = JSON.parse(body);
-					var arrRawFixtures = jsonResult.fixtures;
+					var arrRawFixtures = jsonResult.matches;
 				} catch (e) {
 					if (firstCalendarLoading) {
 						throw Error('error parsing football-data response: ' + e.toString() + ", response: " + body);
@@ -170,5 +144,4 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 }
 
 
-exports.getAllChampionshipsAndPushIntoCalendar = getAllChampionshipsAndPushIntoCalendar;
 exports.getFixturesAndPushIntoCalendar = getFixturesAndPushIntoCalendar;
