@@ -31,7 +31,7 @@ function getCompetitionsSequentially(array) {
 			array.shift();
 			if (array[0]) {
 				setTimeout(function() {
-					getCompetitionsSequentially(array, 200)
+					getCompetitionsSequentially(array)
 				});
 
 			} else {
