@@ -69,8 +69,8 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 	calendar.addResultHelper(category, championship, resultHelper);
 	
 	function encodeFixture(fixture) {
-		let homeTeamName = commons.removeAbbreviations(fixture.homeTeam.name);
-		let awayTeamName = commons.removeAbbreviations(fixture.awayTeam.name);
+		let homeTeamName = commons.removeAbbreviations(fixture.homeTeam.name).replace(/[()]/g, '');
+		let awayTeamName = commons.removeAbbreviations(fixture.awayTeam.name).replace(/[()]/g, '');
 		let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
 		let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
 		let localDay = moment.utc(fixture.utcDate);
