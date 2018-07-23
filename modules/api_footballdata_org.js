@@ -8,19 +8,6 @@ const commons = require('./commons.js');
 const notifications = require('./notifications.js');
 
 var reloadInterval = 1000*3600*24;
-/*
-	var headers = {
-		'X-Auth-Token': conf.footballDataApiKey
-	};
-console.log(headers);
-		request({
-				url: "http://api.football-data.org/v2/competitions/2001/matches",
-				headers: headers
-			}, function(error, response, body) {
-			
-			console.log(body);
-		});
-*/
 
 
 function getFixturesAndPushIntoCalendar(category, championship, url) {
