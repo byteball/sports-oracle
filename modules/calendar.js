@@ -14,6 +14,20 @@ function deleteAllFixturesFromChampionship(championship) {
 
 }
 
+function deleteFixturesFromChampionshipAndDay(championship, date) {
+
+	let category = getCategoryFromChampionship(championship);
+
+	if (calendar[category] && calendar[category][championship]){
+		for (var feedName in calendar[category][championship].fixtures){
+			if (calendar[category][championship].fixtures[feedName].localDay.format("YYYY-MM-DD") === date.format("YYYY-MM-DD")){
+				delete calendar[category][championship][feedName];
+			}
+		}
+	}
+}
+
+
 
 function setReloadingFlag(championship, state){
 	
@@ -201,3 +215,4 @@ exports.isAmericanDST = isAmericanDST;
 exports.setReloadingFlag = setReloadingFlag;
 exports.isThereChampionshipReloading = isThereChampionshipReloading;
 exports.deleteAllFixturesFromChampionship = deleteAllFixturesFromChampionship;
+exports.deleteFixturesFromChampionshipAndDay = deleteFixturesFromChampionshipAndDay;

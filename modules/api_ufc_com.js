@@ -5,7 +5,7 @@ const request = require('request');
 const calendar = require('./calendar.js');
 const notifications = require('./notifications.js');
 
-var reloadInterval = 1000*3600*24;
+var reloadInterval = 1000*3600*12;
 
 
 function getFixturesAndPushIntoCalendar(category, championship) {
@@ -158,7 +158,7 @@ function getFixturesAndPushIntoCalendar(category, championship) {
 							}
 						});
 						calendar.setReloadingFlag(championship, true);
-						calendar.deleteAllFixturesFromChampionship(championship);
+						calendar.deleteFixturesFromChampionshipAndDay(championship, eventDate);
 						arrFixtures.forEach(function(fixture) {
 							if (fixture)
 							calendar.addFixture(category, championship, fixture.feedName, fixture);
