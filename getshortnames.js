@@ -8,11 +8,9 @@ var headers = {
 	'X-Auth-Token': conf.footballDataApiKey
 };
 
-var arrCompetitions = [2001, 2013, 2015];
+var arrCompetitions = [2001, 2002, 2003, 2013, 2014, 2015, 2016, 2017, 2019, 2021];
 
 var assocConversions = {};
-
-
 
 getCompetitionsSequentially(arrCompetitions);
 
@@ -26,18 +24,19 @@ function getCompetitionsSequentially(array) {
 			console.log("\nParsing competition id :" + array[0]);
 			var parsedBody = JSON.parse(body);
 			parsedBody.teams.forEach(function(team) {
-				assocConversions[team.id] = team.shortName;
+				if (team.shortName)
+					assocConversions[team.id] = team.shortName;
 			});
 			array.shift();
 			if (array[0]) {
 				setTimeout(function() {
 					getCompetitionsSequentially(array)
-				});
+				}, 200);
 
 			} else {
-				fs.writeFile("soccerShortNames.json", JSON.stringify(assocConversions), (err) => {
+				fs.writeFile("soccerShortNames.json", JSON.stringify(assocConversions,null,'\t'), (err) => {
 					if (err)
-						throw Error("Could'nt write NamesToShortNames.json" + err);;
+						throw Error("Could'nt write NamesToShortNames.json" + err);
 				});
 			}
 		} else {
