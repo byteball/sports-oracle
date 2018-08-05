@@ -12,7 +12,7 @@ function getTxtCommandButton(label, command) {
 
 
 function removeAbbreviations(text) {
-	return text.replace(/\b(AC|ADO|AFC|AJ|AS|AZ|BSC|CF|EA|EC|ES|FC|FCO|FSV|GO|JC|LB|NAC|MSV|OGC|OSC|PR|RC|SC|PEC|PSV|SCO|SM|SV|TSG|US|VfB|VfL)\b/g, '').trim();
+	return text.replace(/\b(AC|ADO|AFC|AJ|AS|BSC|CF|EA|EC|ES|FC|FCO|FSV|GO|JC|LB|NAC|MSV|OGC|OSC|PR|RC|SC|PEC|SCO|SM|SV|TSG|US|VfB|VfL)\b/g, '').trim();
 }
 
 function removeAccents(str) {

@@ -64,8 +64,8 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 	
 	function encodeFixture(fixture) {
 		if (fixture.homeTeam && fixture.homeTeam.id && assocShortNames[fixture.homeTeam.id] && fixture.awayTeam.id && assocShortNames[fixture.awayTeam.id]){
-			let homeTeamName = commons.removeAbbreviations(assocShortNames[fixture.homeTeam.id]).replace(/[()]/g, '');
-			let awayTeamName = commons.removeAbbreviations(assocShortNames[fixture.awayTeam.id]).replace(/[()]/g, '');
+			let homeTeamName = commons.removeAbbreviations(assocShortNames[fixture.homeTeam.id]).replace(/[()']/g, '');
+			let awayTeamName = commons.removeAbbreviations(assocShortNames[fixture.awayTeam.id]).replace(/[()']/g, '');
 			let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
 			let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
 			let localDay = moment.utc(fixture.utcDate);
@@ -78,7 +78,7 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 				feedHomeTeamName: feedHomeTeamName,
 				feedAwayTeamName: feedAwayTeamName,
 				feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + localDay.format("YYYY-MM-DD"),
-				urlResult: "http://api.football-data.org/v2/matches/"+ fixture.id,
+				urlResult: "https://api.football-data.org/v2/matches/"+ fixture.id,
 				date: moment.utc(fixture.utcDate),
 				localDay: localDay
 			}
