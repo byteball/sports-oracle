@@ -30,19 +30,26 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 	resultHelper.hoursToWaitBeforeGetResult = 4;
 	resultHelper.rules = "The oracle will post the name of winning team after 90 minutes play. This includes added injury or stoppage time but doesn't include extra-time, penalty shootouts or golden goal. If the match is rescheduled to another day, no result will be posted.";
 	resultHelper.process = function(response, expectedFeedName, handle) {
-		if (response.status == "FINISHED") {
-			if (response.score && response.score.fullTime.homeTeam != null) {
-					let fixture = encodeFixture(response);
+		if (response.status)
+			var match = response;
+		 else if (response.match)
+			var match = response.match;
+		 else
+			return handle('Wrong format of data');
+
+		if (match.status == "FINISHED") {
+			if (match.score && match.score.fullTime.homeTeam != null) {
+					let fixture = encodeFixture(match);
 						if (fixture.feedName === expectedFeedName){
-							if (Number(response.score.fullTime.awayTeam) > Number(response.score.fullTime.homeTeam)) {
+							if (Number(match.score.fullTime.awayTeam) > Number(match.score.fullTime.homeTeam)) {
 								fixture.winner = fixture.awayTeam;
 								fixture.winnerCode = fixture.feedAwayTeamName;
 							}
-							if (Number(response.score.fullTime.awayTeam) < Number(response.score.fullTime.homeTeam)) {
+							if (Number(match.score.fullTime.awayTeam) < Number(match.score.fullTime.homeTeam)) {
 								fixture.winner = fixture.homeTeam;
 								fixture.winnerCode = fixture.feedHomeTeamName;
 							}
-							if (Number(response.score.fullTime.awayTeam) == Number(response.score.fullTime.homeTeam)) {
+							if (Number(match.score.fullTime.awayTeam) == Number(match.score.fullTime.homeTeam)) {
 								fixture.winner = 'draw';
 								fixture.winnerCode = 'draw';
 							}
@@ -58,6 +65,7 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 		} else {
 			handle('Fixture is not finished');
 		}
+		
 	};
 	
 	calendar.addResultHelper(category, championship, resultHelper);
