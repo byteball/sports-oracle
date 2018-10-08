@@ -51,8 +51,8 @@ function getFixturesAndPushIntoCalendar(category, championship) {
 	
 	function encodeOnlyNames(fight) {
 		if (fight.fighter1_first_name && fight.fighter2_first_name && typeof fight.fighter1_first_name == "string" && typeof fight.fighter2_first_name == "string"){
-			let feedHomeTeamName = fight.fighter1_first_name.concat(fight.fighter1_last_name).toUpperCase();
-			let feedAwayTeamName = fight.fighter2_first_name.concat(fight.fighter2_last_name).toUpperCase();
+			let feedHomeTeamName = fight.fighter1_first_name.concat(fight.fighter1_last_name).toUpperCase().split(' ').join('');
+			let feedAwayTeamName = fight.fighter2_first_name.concat(fight.fighter2_last_name).toUpperCase().split(' ').join('');
 			return {
 				homeTeam: fight.fighter1_first_name + " " + fight.fighter1_last_name,
 				awayTeam: fight.fighter2_first_name + " " + fight.fighter2_last_name,
