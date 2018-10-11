@@ -28,7 +28,7 @@ function loadChampionships(){
 	mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2018-regular/');
 	mySportFeed.getFixturesAndPushIntoCalendar('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2018-regular/');
 	mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2018-regular/');
-	//mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2018-playoff/');
+	mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2018-regular/');
 	UfcCom.getFixturesAndPushIntoCalendar('Mixed Martial Arts', 'UFC');
 
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CL', 'https://api.football-data.org/v2/competitions/2001/matches');
