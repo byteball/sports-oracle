@@ -125,8 +125,41 @@
 		"Parma": "PARMA",
 		"FC Empoli": "EMPOLI",
 		"Frosinone Calcio": "FROSINONE"
+	},
+	"CL":{
+		"1899 Hoffenheim":"HOFFENHEIM",
+		"AEK Athens":"PAEAEK",
+		"Ajax":"AJAX",
+		"AS Monaco":"MONACO",
+		"Atletico Madrid":"CLUBATLÉTICO",
+		"Barcelona":"BARCELONA",
+		"Bayern Munich":"BAYERNM",
+		"Benfica":"BENFICALISBOA",
+		"Borussia Dortmund" :"DORTMUND",
+		"Club Brugge":"CLUBBRUGGE",
+		"Crvena Zvezda":"CRVENAZVEDZA",
+		"CSKA Moscow":"CSKAMOSKVA",
+		"FC Porto":"PORTO",
+		"FC Schalke 04":"SCHALKE",
+		"Galatasaray":"GALATASARAY",
+		"Inter Milan":"INTER",
+		"Juventus":"JUVENTUS",
+		"Liverpool":"LIVERPOOL",
+		"Lokomotiv Moscow":"LOKMOSKVA",
+		"Lyon":"OLYMPIQUELYON",
+		"Manchester City":"MANCITY",
+		"Manchester United":"MANUNITED",
+		"Napoli":"NAPOLI",
+		"Paris SG":"PSG",
+		"PSV":"PSV",
+		"Real Madrid":"REALMADRID",
+		"Roma":"ROMA",
+		"Shakhtar Donetsk":"SHAKDONETSK",
+		"Tottenham Hotspur":"TOTTENHAM",
+		"Valencia":"VALENCIA",
+		"Viktoria Plzen":"VIKTORIAPLZEŇ",
+		"Young Boys":"YOUNGBOYS"
 	}
-	
 }
 
 
