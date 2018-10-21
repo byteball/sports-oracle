@@ -127,6 +127,7 @@
 		"Frosinone Calcio": "FROSINONE"
 	},
 	"CL":{
+		"theScoreKeyURL": "chlg",
 		"1899 Hoffenheim":"HOFFENHEIM",
 		"AEK Athens":"PAEAEK",
 		"Ajax":"AJAX",
