@@ -193,8 +193,11 @@ function getPublicCalendar() {
 	return JSON.stringify(publicCalendar);
 }
 
-function isAmericanDST(){
-	return true;
+function isAmericanDST(day_event){
+	if (day_event > "2018-11-03" && day_event < "2019-03-10")
+		return false;
+	else
+		return true;
 }
 
 exports.addFixture = addFixture;

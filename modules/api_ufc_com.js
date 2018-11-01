@@ -139,7 +139,7 @@ function getFixturesAndPushIntoCalendar(category, championship) {
 
 						var timeShift = 5;
 
-						if (calendar.isAmericanDST()) {
+						if (calendar.isAmericanDST(eventDate.format("YYYY-MM-DD"))) {
 							timeShift--;
 						}
 						timeShift -= 2; // event can begin 2 hours before announced time due to preliminary fights
