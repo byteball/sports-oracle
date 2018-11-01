@@ -126,7 +126,7 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 	
 	function convertMySportsFeedsTimeToMomentUTC(mySportsFeedsDate, mySportsFeedsTime) {
 		let UtcDate = moment.utc(mySportsFeedsDate + ' ' + mySportsFeedsTime,'YYYY-MM-DD hh:mma');
-		if (calendar.isAmericanDST()){
+		if (calendar.isAmericanDST(UtcDate.format("YYYY-MM-DD"))){
 			UtcDate.add(4, 'hours');
 		}else{
 			UtcDate.add(5, 'hours');
@@ -139,7 +139,6 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 		let awayTeamName = fixture.awayTeam.City + " " + fixture.awayTeam.Name;
 		let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
 		let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
-
 		return {
 			homeTeam: homeTeamName,
 			awayTeam: awayTeamName,
