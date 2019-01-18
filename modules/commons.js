@@ -1,6 +1,6 @@
 /*jslint node: true */
 "use strict";
-const db = require('byteballcore/db.js');
+const db = require('ocore/db.js');
 const async = require('async');
 
 function getTxtCommandButton(label, command) {

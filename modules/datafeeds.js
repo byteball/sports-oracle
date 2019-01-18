@@ -1,11 +1,11 @@
 /*jslint node: true */
 "use strict";
-const db = require('byteballcore/db.js');
-const eventBus = require('byteballcore/event_bus.js');
-const headlessWallet = require('headless-byteball');
+const db = require('ocore/db.js');
+const eventBus = require('ocore/event_bus.js');
+const headlessWallet = require('headless-obyte');
 const notifications = require('./notifications.js');
-const conf = require('byteballcore/conf.js');
-const objectHash = require('byteballcore/object_hash.js');
+const conf = require('ocore/conf.js');
+const objectHash = require('ocore/object_hash.js');
 
 const RETRY_TIMEOUT = 5 * 60 * 1000;
 const WITNESSING_COST = 600; // size of typical witnessing unit
@@ -85,8 +85,8 @@ function postDataFeed(datafeed, onDone) {
 		notifications.notifyAdminAboutFailedPosting(err);
 		onDone(err);
 	}
-	var network = require('byteballcore/network.js');
-	var composer = require('byteballcore/composer.js');
+	var network = require('ocore/network.js');
+	var composer = require('ocore/composer.js');
 	createOptimalOutputs(function(arrOutputs) {
 		let params = {
 			paying_addresses: [my_address],

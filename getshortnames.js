@@ -1,7 +1,7 @@
 /*jslint node: true */
 "use strict";
 const request = require('request');
-const conf = require('byteballcore/conf.js');
+const conf = require('ocore/conf.js');
 const fs = require('fs');
 
 var headers = {
