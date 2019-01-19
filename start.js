@@ -3,11 +3,11 @@
 const moment = require('moment');
 const request = require('request');
 const async = require('async');
-const conf = require('byteballcore/conf.js');
-const db = require('byteballcore/db.js');
-const eventBus = require('byteballcore/event_bus.js');
-const headlessWallet = require('headless-byteball');
-const desktopApp = require('byteballcore/desktop_app.js');
+const conf = require('ocore/conf.js');
+const db = require('ocore/db.js');
+const eventBus = require('ocore/event_bus.js');
+const headlessWallet = require('headless-obyte');
+const desktopApp = require('ocore/desktop_app.js');
 const notifications = require('./modules/notifications.js');
 const commons = require('./modules/commons.js');
 const calendar = require('./modules/calendar.js');
@@ -42,7 +42,7 @@ function loadChampionships(){
 }
 
 if (conf.bRunWitness)
-	require('byteball-witness');
+	require('obyte-witness');
 
 if (!conf.bSingleAddress)
 	throw Error('oracle must be single address');
@@ -58,7 +58,7 @@ function getHomeInstructions() {
 			instructions += commons.getTxtCommandButton(championship) + ' ';
 		});
 	});
-	instructions+= "\n------------------------------------------------------\nFor information about sports betting, please visit our wiki: https://wiki.byteball.org/Sports_betting"
+	instructions+= "\n------------------------------------------------------\nFor information about sports betting, please visit our wiki: https://wiki.obyte.org/Sports_betting"
 	return instructions;
 }
 
@@ -225,7 +225,7 @@ function getFeedStatus(from_address, feedName, handle) {
 				handle(getResponseForFeedAlreadyInDAG(fixture, value, is_stable));
 			} else {
 				insertIntoRequestedFixtures();
-				var device = require('byteballcore/device.js');
+				var device = require('ocore/device.js');
 				device.sendMessageToDevice(from_address, 'text', "Result is being retrieved, please wait.");
 				retrieveAndPostResult(fixture.urlResult, championship, feedName, resultHelper, function(txt) {
 					handle(txt);
@@ -236,7 +236,7 @@ function getFeedStatus(from_address, feedName, handle) {
 		insertIntoRequestedFixtures();
 		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
 		+ "\n\nRules for " + championship + ": " + resultHelper.rules
-		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nFind more information about sport betting on our wiki: https://wiki.byteball.org/Sports_betting");
+		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nFind more information about sport betting on our wiki: https://wiki.obyte.org/Sports_betting");
 	}
 }
 
@@ -248,7 +248,7 @@ function notifyForDatafeedPosted(feedName, value) {
 		function(rows) {
 			rows.forEach(
 				function(row) {
-					var device = require('byteballcore/device.js');
+					var device = require('ocore/device.js');
 					device.sendMessageToDevice(row.device_address, 'text', "Sport oracle posted " + feedName + " = " + value);
 				}
 			)
@@ -292,12 +292,12 @@ function findFixturesToCheckAndGetResult() {
 
 
 eventBus.on('paired', function(from_address) {
-	var device = require('byteballcore/device.js');
+	var device = require('ocore/device.js');
 	device.sendMessageToDevice(from_address, 'text', getHomeInstructions());
 });
 
 eventBus.on('text', function(from_address, text) {
-	var device = require('byteballcore/device.js');
+	var device = require('ocore/device.js');
 	text = text.trim();
 	let ucText = text.toUpperCase();
  

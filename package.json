@@ -1,7 +1,7 @@
 {
 	"name": "sports-oracle",
-	"description": "Sports results oracle on Byteball platform",
-	"author": "Byteball",
+	"description": "Sports results oracle on Obyte platform",
+	"author": "Obyte",
 	"version": "0.1.0",
 	"main": "start.js",
 	"keywords": [
@@ -9,7 +9,7 @@
 		"oracle",
 		"data feed",
 		"witness",
-		"byteball"
+		"obyte"
 	],
 	"license": "MIT",
 	"repository": {
@@ -27,7 +27,7 @@
 		"moment": "^2.18.1",
 		"request": "^2.79.0",
 		"btoa": "^1.1.2",
-		"byteballcore": "git+https://github.com/byteball/byteballcore.git",
-		"byteball-witness": "git+https://github.com/byteball/byteball-witness.git"
+		"ocore": "git+https://github.com/byteball/ocore.git",
+		"obyte-witness": "git+https://github.com/byteball/obyte-witness.git"
 	}
 }

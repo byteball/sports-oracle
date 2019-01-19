@@ -3,7 +3,7 @@
 const moment = require('moment');
 const request = require('request');
 const btoa = require('btoa');
-const conf = require('byteballcore/conf.js');
+const conf = require('ocore/conf.js');
 const calendar = require('./calendar.js');
 const notifications = require('./notifications.js');
 
