@@ -180,7 +180,7 @@ function isExistingChampionship(championship) {
 
 
 function getPublicCalendar() {
-	var publicCalendar = _.cloneDeep(calendar);
+	var publicCalendar = _.clone(calendar);
 	for (var cat in publicCalendar) {
 		for (var championship in publicCalendar[cat]) { //we delete unneeded attributes
 			delete publicCalendar[cat][championship].resultHelper;
