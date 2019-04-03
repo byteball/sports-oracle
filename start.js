@@ -14,7 +14,6 @@ const calendar = require('./modules/calendar.js');
 const datafeeds = require('./modules/datafeeds.js');
 const administration = require('./modules/administration.js');
 const mySportFeed = require('./modules/api_mysportfeed.js');
-const UfcCom = require('./modules/api_ufc_com.js');
 const footballDataOrg = require('./modules/api_footballdata_org.js');
 const theScore = require('./modules/api_thescore.js');
 
@@ -25,11 +24,10 @@ setTimeout(loadChampionships,500);
 function loadChampionships(){
 	//------The different feeds are added to the calendar
 	//------The 2 first arguments specify category and keyword
-	//mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2018-regular/');
+	mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2019-regular/');
 	//mySportFeed.getFixturesAndPushIntoCalendar('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2019-playoff/');
 	mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2018-regular/');
 	mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2018-regular/');
-//	UfcCom.getFixturesAndPushIntoCalendar('Mixed Martial Arts', 'UFC');
 
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CL', 'https://api.football-data.org/v2/competitions/2001/matches');
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BL1', 'https://api.football-data.org/v2/competitions/2002/matches');
