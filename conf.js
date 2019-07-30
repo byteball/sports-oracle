@@ -9,7 +9,7 @@ exports.bLight = false;
 exports.storage = 'sqlite';
 
 
-exports.hub = 'obyte.org/bb';
+exports.hub = process.env.testnet ? 'obyte.org/bb-test' : 'obyte.org/bb';
 exports.deviceName = 'sports oracle';
 exports.permanent_pairing_secret = '0000';
 exports.control_addresses = ['DEVICE ALLOWED TO CHAT'];
