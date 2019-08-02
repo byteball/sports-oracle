@@ -27,4 +27,6 @@ exports.footballDataApiKey = '';
 
 exports.KEYS_FILENAME = 'keys.json';
 
+exports.expectedPaymentFromAa = 10000;
+
 console.log('finished sports oracle conf');
