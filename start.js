@@ -183,7 +183,8 @@ function retrieveAndPostResultToDag(url, championship, feedName, resultHelper, h
 					var datafeed = {};
 					datafeed[feedName] = result.winnerCode;
 					datafeeds.reliablyPost(datafeed);
-					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.localDay ? " on " + result.localDay.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked", result.winnerCode);
+					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.localDay ? " on " + result.localDay.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked."
+					+ "\nYou can also request to "+ commons.getTxtCommandButton('trigger an autonomous agent',feedName + " trigger" )+" with this result.", result.winnerCode);
 				}
 			});
 
@@ -238,7 +239,7 @@ function treatRequestForAaPosting(from_address, feedName, aa_address, handle){
 
 
 function treatRequestForDagPosting(from_address, feedName, handle) {
-					
+
 	var fixture = calendar.getFixtureFromFeedName(feedName);
 	var resultHelper = calendar.getResultHelperFromFeedName(feedName);
 	var championship = calendar.getChampionshipFromFeedName(feedName);
@@ -267,7 +268,7 @@ function treatRequestForDagPosting(from_address, feedName, handle) {
 				if (!is_stable) {
 					insertIntoRequestedFixtures();
 				}
-				handle(getResponseForFeedAlreadyInDAG(fixture, value, is_stable));
+				handle(getResponseForFeedAlreadyInDAG(fixture, value, is_stable, feedName));
 			} else {
 				insertIntoRequestedFixtures();
 				var device = require('ocore/device.js');
@@ -281,7 +282,8 @@ function treatRequestForDagPosting(from_address, feedName, handle) {
 		insertIntoRequestedFixtures();
 		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
 		+ "\n\nRules for " + championship + ": " + resultHelper.rules
-		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nFind more information about sport betting on our wiki: https://wiki.obyte.org/Sports_betting");
+		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nFind more information about sport betting on our wiki: https://wiki.obyte.org/Sports_betting "
+		+	"\n\nYou can also request to "+ commons.getTxtCommandButton('trigger an autonomous agent',feedName + " trigger" )+" with this result.");
 	}
 }
 
@@ -394,7 +396,7 @@ eventBus.on('text', function(from_address, text) {
 /*
 * if return home
 */
-	if (text == "home") {
+	if (text == "home" || text == "cancel") {
 		assocPeers[from_address].step = 'home';
 	}
 
@@ -428,11 +430,17 @@ eventBus.on('text', function(from_address, text) {
 if (text.split(' ').length == 2){
 	var feedName = text.split(' ')[0];
 	var aa_address = text.split(' ')[1];
+
 	if (calendar.getFixtureFromFeedName(feedName) && validationUtils.isValidAddress(aa_address)) {
 		treatRequestForAaPosting(from_address, feedName, aa_address, function(response){
 			device.sendMessageToDevice(from_address, 'text', response);
 		});
 		return;
+	}
+	if (calendar.getFixtureFromFeedName(feedName) && aa_address == 'trigger') {
+		assocPeers[from_address].feedName = feedName;
+		assocPeers[from_address].step = 'request_aa_address';
+		return device.sendMessageToDevice(from_address, 'text', `Enter the autonomous agent you want to trigger with result for ${feedName} or ${commons.getTxtCommandButton('cancel')}`);
 	}
 }
 
@@ -445,6 +453,16 @@ if (text.split(' ').length == 2){
 			device.sendMessageToDevice(from_address, 'text', response);
 		});
 		return;
+	}
+
+	if (assocPeers[from_address].step == "request_aa_address") {
+		if (validationUtils.isValidAddress(text)){
+			return treatRequestForAaPosting(from_address, assocPeers[from_address].feedName, text, function(response){
+				assocPeers[from_address].step = 'home';
+				device.sendMessageToDevice(from_address, 'text', response);
+			});
+		}
+		return device.sendMessageToDevice(from_address, 'text', `Not a valid address, try again or ${feedName} or ${commons.getTxtCommandButton('cancel')}`);
 	}
 
 
@@ -468,13 +486,15 @@ if (text.split(' ').length == 2){
 
 
 
-function getResponseForFeedAlreadyInDAG(fixture, result, is_stable) {
-	return fixture.homeTeamName + ' vs ' + fixture.awayTeamName + '\n' +
+function getResponseForFeedAlreadyInDAG(fixture, result, is_stable, feedName) {
+	return fixture.homeTeam + ' vs ' + fixture.awayTeam + '\n' +
 		'on ' + fixture.localDay.format("DD MMMM YYYY") + '\n' +
 		(result === 'draw' ? 'draw' : result + ' won') +
 		(is_stable ?
-			"\n\nThe data is already in the database, you can unlock your smart contract now." :
-			"\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
+			"\n\nThe data is already in the database, you can unlock your smart contract now." +
+			"You can also request to "+ commons.getTxtCommandButton('trigger an autonomous agent',feedName + " trigger" )+" with this result.":
+			"\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract." +
+			"You can also request to "+ commons.getTxtCommandButton('trigger an autonomous agent',feedName + " trigger" )+" with this result.");
 }
 
 

@@ -145,7 +145,6 @@ function reliablyPost(datafeed) {
 
 
 function readExisting(feed_name, handleResult) {
-	console.error("read existing: " + feed_name);
 	if (assocQueuedDataFeeds[feed_name]) {
 		return handleResult(true, 0, assocQueuedDataFeeds[feed_name]);
 	}
