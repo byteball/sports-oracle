@@ -190,6 +190,7 @@ function getPublicCalendar() {
 			}
 		}
 	}
+	publicCalendar.creation_date = Math.round(new Date() / 1000);
 	return JSON.stringify(publicCalendar);
 }
 

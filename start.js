@@ -219,14 +219,16 @@ function treatRequestForAaPosting(from_address, feedName, aa_address, handle){
 		datafeeds.readExisting(feedName, function(exists, is_stable, value) {
 
 			if (exists) {
-				datafeeds.postDatafeedToAa(feedName, value, aa_address,  getpostDatafeedToAaCallbacks(from_address, aa_address, feedName,value));
+				datafeeds.postDatafeedToAa(feedName, value, aa_address,  getpostDatafeedToAaCallbacks([from_address], aa_address, feedName, value));
+				handle();
 			} else {
 				insertIntoRequestedFixturesForAa();
 				var device = require('ocore/device.js');
 				device.sendMessageToDevice(from_address, 'text', "Result is being retrieved, please wait.");
 				retrieveAndPostResultToDag(fixture.urlResult, championship, feedName, resultHelper, function(txt, value) {
 					if (value)
-						datafeeds.postDatafeedToAa(feedName, value, aa_address,  getpostDatafeedToAaCallbacks(from_address, aa_address, feedName,value));
+						datafeeds.postDatafeedToAa(feedName, value, aa_address,  getpostDatafeedToAaCallbacks([from_address], aa_address, feedName, value));
+					handle();
 				});
 			}
 		});
@@ -259,7 +261,6 @@ function treatRequestForDagPosting(from_address, feedName, handle) {
 			});
 		});
 	}
-	
 
 	if (fixture.date.isBefore(moment().subtract(resultHelper.hoursToWaitBeforeGetResult, 'hours'))) {
 		datafeeds.readExisting(feedName, function(exists, is_stable, value) {
@@ -287,26 +288,35 @@ function treatRequestForDagPosting(from_address, feedName, handle) {
 	}
 }
 
-function getpostDatafeedToAaCallbacks(device_address, aa_address, feedName, value){
+function getpostDatafeedToAaCallbacks(device_addresses, aa_address, feedName, value){
 	return {
 		ifNotAa: function(){
 			var device = require('ocore/device.js');
-			device.sendMessageToDevice(device_address, 'text', `${aa_address} is not an autonomous agent address, I couldn't trigger it with result for ${feedName}.`);
+			device_addresses.forEach(function (device_address){
+				device.sendMessageToDevice(device_address, 'text', `${aa_address} is not an autonomous agent address, I couldn't trigger it with result for ${feedName}.`);
+			});
 			return commons.deleteAaHavingRequestedFixturesFromDB(feedName, aa_address);
 		},
 		ifNotPayingAa: function(){
 			var device = require('ocore/device.js');
-			device.sendMessageToDevice(device_address, 'text', `${aa_address} doesn't refund at least ${conf.expectedPaymentFromAa} bytes to oracle.`);
-			return commons.deleteAaHavingRequestedFixturesFromDB(feedName, aa_address);
+			device_addresses.forEach(function (device_address){
+				device.sendMessageToDevice(device_address, 'text', `${aa_address} doesn't refund at least ${conf.expectedPaymentFromAa} bytes to oracle.`);
+			});
+				return commons.deleteAaHavingRequestedFixturesFromDB(feedName, aa_address);
 
 		},
 		ifError: function(error) {
 			var device = require('ocore/device.js');
-			return device.sendMessageToDevice(device_address, 'text', `Internal error, couldn't trigger your AA. I will retry later ${error}`);
+			device_addresses.forEach(function (device_address){
+				return device.sendMessageToDevice(device_address, 'text', `Internal error, couldn't trigger your AA. I will retry later ${error}`);
+			});
+
 		},
 		ifSuccess: function() {
 			var device = require('ocore/device.js');
-			device.sendMessageToDevice(device_address, 'text', `I triggered your AA ${aa_address} with ${feedName} = ${value}`);
+			device_addresses.forEach(function (device_address){
+				device.sendMessageToDevice(device_address, 'text', `I triggered your AA ${aa_address} with ${feedName} = ${value}`);
+			});
 			return commons.deleteAaHavingRequestedFixturesFromDB(feedName, aa_address);
 		}
 	}
@@ -314,9 +324,12 @@ function getpostDatafeedToAaCallbacks(device_address, aa_address, feedName, valu
 
 function postResultToAas(feedName, value){
 
-	db.query("SELECT * FROM aa_having_requested_fixture WHERE feed_name=?", [feedName], function(rows){
+	db.query("SELECT DISTINCT feed_name, aa_address FROM aa_having_requested_fixture WHERE feed_name=?", [feedName], function(rows){
 		rows.forEach(function(row){
-			datafeeds.postDatafeedToAa(feedName, value, row.aa_address,  getpostDatafeedToAaCallbacks(row.device_address, row.aa_address, feedName,value));
+			db.query("SELECT DISTINCT device_address FROM aa_having_requested_fixture WHERE feed_name=? AND aa_address=?", [feedName, row.aa_address], function(device_addresses){
+				datafeeds.postDatafeedToAa(feedName, value, row.aa_address,  getpostDatafeedToAaCallbacks(device_addresses.map(function(address){return address.device_address}), row.aa_address, feedName,value));
+			});
+	
 		})
 	});
 }
@@ -358,10 +371,13 @@ function findFixturesToCheckAndGetResult() {
 						datafeeds.readExisting(row.feed_name, function(exists, is_stable, existing_value) {
 							if(!exists)
 								retrieveAndPostResultToDag(row.result_url, calendar.getChampionshipFromFeedName(row.feed_name), row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function(text, retrieved_value) {
-									if (retrieved_value)
+									if (retrieved_value){
+										console.error("retrieved_value " + retrieved_value);
 										postResultToAas(row.feed_name, retrieved_value);
+									}
 								});
-								postResultToAas(row.feed_name, existing_value);
+								if (existing_value)
+									postResultToAas(row.feed_name, existing_value);
 						});
 					} else {
 						notifications.notifyAdmin("Championship " + row.feed_name + " not in calendar anymore, can't get result", "");
@@ -382,10 +398,27 @@ eventBus.on('paired', function(from_address) {
 	device.sendMessageToDevice(from_address, 'text', getHomeInstructions());
 });
 
+
+eventBus.on('object', function(from_address,  object) {
+
+	if (!object.time_limit || typeof object.time_limit != 'number' || object.time_limit  < new Date() / 1000)
+		return;
+
+	if (object.action == "get_calendar"){
+
+		var returnedObject = calendar.getPublicCalendar();
+		returnedObject
+		return device.sendMessageToDevice(from_address, 'object', calendar.getPublicCalendar());
+
+	}
+
+
+});
+
+
 eventBus.on('text', function(from_address, text) {
 	var device = require('ocore/device.js');
 	text = text.trim();
-	let ucText = text.toUpperCase();
  
 	if (!assocPeers[from_address]) {
 		assocPeers[from_address] = {
@@ -427,22 +460,22 @@ eventBus.on('text', function(from_address, text) {
 /*
 * if fixture requested for AA
 */
-if (text.split(' ').length == 2){
-	var feedName = text.split(' ')[0];
-	var aa_address = text.split(' ')[1];
+	if (text.split(' ').length == 2){
+		var feedName = text.split(' ')[0];
+		var aa_address = text.split(' ')[1];
 
-	if (calendar.getFixtureFromFeedName(feedName) && validationUtils.isValidAddress(aa_address)) {
-		treatRequestForAaPosting(from_address, feedName, aa_address, function(response){
-			device.sendMessageToDevice(from_address, 'text', response);
-		});
-		return;
+		if (calendar.getFixtureFromFeedName(feedName) && validationUtils.isValidAddress(aa_address)) {
+			treatRequestForAaPosting(from_address, feedName, aa_address, function(response){
+				device.sendMessageToDevice(from_address, 'text', response);
+			});
+			return;
+		}
+		if (calendar.getFixtureFromFeedName(feedName) && aa_address == 'trigger') {
+			assocPeers[from_address].feedName = feedName;
+			assocPeers[from_address].step = 'request_aa_address';
+			return device.sendMessageToDevice(from_address, 'text', `Enter the autonomous agent you want to trigger with result for ${feedName} or ${commons.getTxtCommandButton('cancel')}`);
+		}
 	}
-	if (calendar.getFixtureFromFeedName(feedName) && aa_address == 'trigger') {
-		assocPeers[from_address].feedName = feedName;
-		assocPeers[from_address].step = 'request_aa_address';
-		return device.sendMessageToDevice(from_address, 'text', `Enter the autonomous agent you want to trigger with result for ${feedName} or ${commons.getTxtCommandButton('cancel')}`);
-	}
-}
 
 
 /*
