@@ -8,24 +8,27 @@ var headers = {
 	'X-Auth-Token': conf.footballDataApiKey
 };
 
-var arrCompetitions = [2001, 2002, 2003, 2013, 2014, 2015, 2016, 2017, 2019, 2021];
+var arrCompetitions = ['fran', 'bund', 'epl', 'liga', 'seri','chlg'];
 
-var assocConversions = {};
+var assocFullNames = {};
 
 getCompetitionsSequentially(arrCompetitions);
 
 function getCompetitionsSequentially(array) {
 	request({
-		url: "https://api.football-data.org/v2/competitions/" + array[0] + "/teams",
+		url: "https://api.thescore.com/" + array[0] + "/teams",
 		headers: headers
 	}, function(error, response, body) {
 		console.log(body);
 		if (!error) {
 			console.log("\nParsing competition id :" + array[0]);
 			var parsedBody = JSON.parse(body);
-			parsedBody.teams.forEach(function(team) {
-				if (team.shortName)
-					assocConversions[team.id] = team.shortName;
+			parsedBody.forEach(function(team) {
+				if (team.full_name){
+					if (!assocFullNames[array[0]])
+						assocFullNames[array[0]] = [];
+					assocFullNames[array[0]].push(team.full_name);
+				}
 			});
 			array.shift();
 			if (array[0]) {
@@ -34,9 +37,9 @@ function getCompetitionsSequentially(array) {
 				}, 200);
 
 			} else {
-				fs.writeFile("soccerShortNames.json", JSON.stringify(assocConversions,null,'\t'), (err) => {
+				fs.writeFile("theScoreFullNames.json", JSON.stringify(assocFullNames,null,'\t'), (err) => {
 					if (err)
-						throw Error("Could'nt write NamesToShortNames.json" + err);
+						throw Error("Could'nt write soccerFeedNames.json" + err);
 				});
 			}
 		} else {
