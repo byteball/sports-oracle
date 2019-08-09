@@ -3,7 +3,6 @@
 const request = require('request');
 const conf = require('ocore/conf.js');
 const fs = require('fs');
-const commons = require('../modules/commons.js');
 
 var headers = {
 	'X-Auth-Token': conf.footballDataApiKey
@@ -28,7 +27,7 @@ function getCompetitionsSequentially(array) {
 				if (team.full_name){
 					if (!assocFullNames[array[0]])
 						assocFullNames[array[0]] = [];
-						assocFullNames[array[0]].push(team.full_name);
+					assocFullNames[array[0]].push(team.full_name);
 				}
 			});
 			array.shift();
