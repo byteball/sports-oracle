@@ -2,15 +2,16 @@
 	"PL": {
 		"theScoreKeyURL": "epl",
 		"Arsenal": "ARSENAL",
+		"Aston Villa" :"ASTONVILLA",
 		"Leicester City": "LEICESTERCITY",
 		"Watford": "WATFORD",
 		"Liverpool": "LIVERPOOL",
 		"Southampton": "SOUTHAMPTON",
-		"Swansea City": "SWANSEACITY",
-		"West Bromwich Albion": "WESTBROMWICHALBION",
+		"Swansea City": "SWANSEA",
+		"West Bromwich Albion": "WESTBROM",
 		"Bournemouth": "BOURNEMOUTH",
 		"Everton": "EVERTON",
-		"Stoke City": "STOKECITY",
+		"Stoke City": "STOKE",
 		"Crystal Palace": "CRYSTALPALACE",
 		"Huddersfield Town": "HUDDERSFIELD",
 		"Chelsea": "CHELSEA",
@@ -18,21 +19,24 @@
 		"Brighton & Hove Albion": "BRIGHTONHOVE",
 		"Manchester City": "MANCITY",
 		"Newcastle Utd": "NEWCASTLE",
+		"Norwich City" : "NORWICH",
 		"Tottenham Hotspur": "TOTTENHAM",
 		"Manchester United": "MANUNITED",
 		"West Ham United": "WESTHAM",
 		"Fulham": "FULHAM", 
 		"Wolverhampton": "WOLVERHAMPTON",
-		"Cardiff City": "CARDIFF"
+		"Cardiff City": "CARDIFF",
+		"Sheffield United" : "SHEFFIELDUTD"
 	},
 	"FL1": {
 		"theScoreKeyURL": "fran",
+		"BREST" : "Brest",
 		"AS Monaco": "MONACO",
 		"Toulouse": "TOULOUSE",
-		"Paris SG": "PSG",
+		"PSG": "PSG",
 		"Amiens": "AMIENS",
 		"Troyes": "TROYES",
-		"Stade Rennes": "STADERENNES",
+		"Stade Rennes": "STADERENNAIS",
 		"St. Etienne": "SAINT-ÉTIENNE",
 		"OGC Nice": "NICE",
 		"Lyon": "OLYMPIQUELYON",
@@ -47,9 +51,8 @@
 		"FC Girondins Bordeaux": "BORDEAUX",
 		"Marseille": "MARSEILLE",
 		"Dijon": "DIJON",
-		"Nîmes": "NÎMESOLYMPIQUE",
-		"Stade Reims": "STADEDEREIMS",
-		"Nîmes" : "NÎMES"
+		"Nîmes": "NÎMESOL.",
+		"Stade Reims": "STADEDEREIMS"
 	},
 	"BL1": {
 		"theScoreKeyURL": "bund",
@@ -57,7 +60,7 @@
 		"Bayer Leverkusen": "LEVERKUSEN",
 		"Hamburger SV": "HAMBURGER",
 		"FC Augsburg": "AUGSBURG",
-		"Hertha BSC": "HERTHA",
+		"Hertha BSC Berlin": "HERTHA",
 		"VfB Stuttgart": "STUTTGART",
 		"1899 Hoffenheim": "HOFFENHEIM",
 		"Werder Bremen": "BREMEN",
@@ -72,7 +75,9 @@
 		"Mönchengladbach": "MGLADBACH",
 		"1. FC Köln": "1.KÖLN",
 		"1 FC Nuremberg": "NÜRNBERG",
-		"Fortuna Dusseldorf": "DÜSSELDORF"
+		"Fortuna Dusseldorf": "DÜSSELDORF",
+		"SC Paderborn": "PADERBORN",
+		"FC Union Berlin": "UNIONBERLIN"
 	},
 	"PD": {
 		"theScoreKeyURL": "liga",
@@ -83,12 +88,12 @@
 		"Celta Vigo": "CELTAVIGO",
 		"Real Sociedad": "REALSOCIEDAD",
 		"Girona FC": "GIRONA",
-		"Atletico Madrid": "CLUBATLÉTICO",
+		"Atletico Madrid": "ATLETI",
 		"Sevilla": "SEVILLA",
 		"Espanyol": "ESPANYOL",
-		"Bilbao Athletic": "ATHLETICCLUB",
+		"Bilbao Athletic": "ATHLETIC",
 		"Getafe": "GETAFE",
-		"Barcelona": "BARCELONA",
+		"Barcelona": "BARÇA",
 		"Real Betis": "REALBETIS",
 		"Deportivo": "DEPORTIVOLACORUNA",
 		"Real Madrid": "REALMADRID",
@@ -98,13 +103,16 @@
 		"SD Eibar": "EIBAR",
 		"Rayo Vallecano":"RAYOVALLECANO",
 		"Valladolid": "VALLADOLID",
-		"SD Huesca": "HUESCA"
+		"SD Huesca": "HUESCA",
+		"Osasuna" : "OSASUNA",
+		"Granada CF" : "GRANADA",
+		"Mallorca" : "MALLORCA"
 	},
 	"SA": {
 		"theScoreKeyURL": "seri",
-		"Juventus": "JUVENTUS",
+		"Juventus": "JUVE",
 		"Cagliari": "CAGLIARI",
-		"Hellas Verona": "HELLASVERONA",
+		"Hellas Verona": "VERONA",
 		"Napoli": "NAPOLI",
 		"Atalanta": "ATALANTA",
 		"Roma": "ROMA",
@@ -124,7 +132,9 @@
 		"AC Milan": "MILAN",
 		"Parma": "PARMA",
 		"FC Empoli": "EMPOLI",
-		"Frosinone Calcio": "FROSINONE"
+		"Frosinone Calcio": "FROSINONE",
+		"Brescia" : "BRESCIA",
+		"Lecce" : "LECCE"
 	},
 	"CL":{
 		"theScoreKeyURL": "chlg",
@@ -132,10 +142,10 @@
 		"AEK Athens":"PAEAEK",
 		"Ajax":"AJAX",
 		"AS Monaco":"MONACO",
-		"Atletico Madrid":"CLUBATLÉTICO",
-		"Barcelona":"BARCELONA",
+		"Atletico Madrid":"ATLETI",
+		"Barcelona":"BARÇA",
 		"Bayern Munich":"BAYERNM",
-		"Benfica":"BENFICALISBOA",
+		"Benfica":"SLBENFICA",
 		"Borussia Dortmund" :"DORTMUND",
 		"Club Brugge":"CLUBBRUGGE",
 		"Crvena Zvezda":"CRVENAZVEDZA",
@@ -151,7 +161,7 @@
 		"Manchester City":"MANCITY",
 		"Manchester United":"MANUNITED",
 		"Napoli":"NAPOLI",
-		"Paris SG":"PSG",
+		"PSG":"PSG",
 		"PSV":"PSV",
 		"Real Madrid":"REALMADRID",
 		"Roma":"ROMA",
@@ -162,5 +172,3 @@
 		"Young Boys":"YOUNGBOYS"
 	}
 }
-
-
