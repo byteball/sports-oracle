@@ -22,7 +22,6 @@ function canCheckChampionship(championship){
 
 
 function checkResult(championship, feedName, UTCdate, result, callbacks) {
-
 	function findAndCheckFixture(arrayEventIds) {
 		if (arrayEventIds.length == 0) {
 			notifications.notifyAdmin("arrayEventIds empty when checking " + feedName, ' ');
@@ -43,14 +42,13 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 			}
 
 			if (parsedBody.status && (parsedBody.status == "final" || parsedBody.status == "postponed")) {
-				
 				if (soccerTeamsCorrespondence[championship]){
-					if (soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name] && soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name]){
+					if (soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name] && soccerTeamsCorrespondence[championship][parsedBody.away_team.full_name]){
 						var feedHomeTeamName = soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name];
 						var feedAwayTeamName = soccerTeamsCorrespondence[championship][parsedBody.away_team.full_name];
 					} else {
 						notifications.notifyAdmin("Couldn't find a correspondence for " + feedName + " from thescore", ' ');
-						return callbacks.ifCriticalError();
+						return next();
 					}
 				} else {
 					var feedHomeTeamName = parsedBody.home_team.full_name.replace(/\s/g, '').toUpperCase();
@@ -80,12 +78,15 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 				}
 			}
 
-			if (arrayEventIds.length > 1) {
-				return findAndCheckFixture(arrayEventIds.splice(1));
-			} else {
-				notifications.notifyAdmin("Couldn't check " + feedName + " from thescore", ' ');
-				return callbacks.ifCriticalError();
+			return next();
 
+			function next(){
+				if (arrayEventIds.length > 1) {
+					return findAndCheckFixture(arrayEventIds.splice(1));
+				} else {
+					notifications.notifyAdmin("Couldn't check " + feedName + " from thescore", ' ');
+					return callbacks.ifCriticalError();
+				}
 			}
 
 		});
