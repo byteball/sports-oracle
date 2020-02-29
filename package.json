@@ -27,7 +27,7 @@
 		"moment": "^2.18.1",
 		"request": "^2.79.0",
 		"btoa": "^1.1.2",
-		"ocore": "git+https://github.com/byteball/ocore.git",
-		"obyte-witness": "git+https://github.com/byteball/obyte-witness.git"
+		"ocore": "git+https://github.com/byteball/ocore.git#rocks-and-formulas",
+		"obyte-witness": "git+https://github.com/byteball/obyte-witness.git#aa"
 	}
 }

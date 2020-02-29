@@ -16,6 +16,8 @@ const administration = require('./modules/administration.js');
 const mySportFeed = require('./modules/api_mysportfeed.js');
 const footballDataOrg = require('./modules/api_footballdata_org.js');
 const theScore = require('./modules/api_thescore.js');
+const validationUtils = require('ocore/validation_utils.js');
+
 
 var assocPeers = [];
 
@@ -130,7 +132,7 @@ function searchFixtures(championship, searchedString) {
 }
 
 
-function retrieveAndPostResult(url, championship, feedName, resultHelper, handle) {
+function retrieveAndPostResultToDag(url, championship, feedName, resultHelper, handle) {
 
 	if (!resultHelper || !championship)
 		return handle("Internal error, please retry later");
@@ -164,7 +166,7 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 
 			checkUsingSecondSource(championship, feedName, result.date, result.winnerCode, {
 				ifPostponed: () => {
-					commons.deleteFromDB(feedName);
+					commons.deleteAllRequestedFixtures(feedName);
 					return handle("This result has been postponed.");
 				},
 				ifCriticalError: () => {
@@ -181,7 +183,8 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 					var datafeed = {};
 					datafeed[feedName] = result.winnerCode;
 					datafeeds.reliablyPost(datafeed);
-					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.localDay ? " on " + result.localDay.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked");
+					return handle(result.homeTeam + " vs " + result.awayTeam + "\n " + (result.localDay ? " on " + result.localDay.format("YYYY-MM-DD") : " ") + "\n" + (result.winner === 'draw' ? 'draw' : result.winner + ' won') + "\n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked."
+					+ "\nYou can also request to "+ commons.getTxtCommandButton('trigger an autonomous agent',feedName + " trigger" )+" with this result.", result.winnerCode);
 				}
 			});
 
@@ -191,8 +194,54 @@ function retrieveAndPostResult(url, championship, feedName, resultHelper, handle
 
 }
 
-function getFeedStatus(from_address, feedName, handle) {
-					
+function treatRequestForAaPosting(from_address, feedName, aa_address, handle){
+	var fixture = calendar.getFixtureFromFeedName(feedName);
+	var resultHelper = calendar.getResultHelperFromFeedName(feedName);
+	var championship = calendar.getChampionshipFromFeedName(feedName);
+	
+	if (!fixture || !resultHelper || !championship)
+		return handle("Internal error, please retry later");
+	
+	function insertIntoRequestedFixturesForAa(){
+		db.takeConnectionFromPool(function(conn) {
+			var arrQueries = [];
+			conn.addQuery(arrQueries, "BEGIN");
+			conn.addQuery(arrQueries, "INSERT OR IGNORE INTO requested_fixtures ( feed_name, fixture_date, result_url, hours_to_wait) VALUES (?,?,?,?) ",[feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"),fixture.urlResult,resultHelper.hoursToWaitBeforeGetResult]);
+			conn.addQuery(arrQueries, "INSERT OR IGNORE INTO aa_having_requested_fixture (device_address, feed_name, aa_address) VALUES (?,?,?)",[from_address, feedName, aa_address]);
+			conn.addQuery(arrQueries, "COMMIT");
+			async.series(arrQueries, function() {
+				conn.release();
+			});
+		});
+	}
+
+	if (fixture.date.isBefore(moment().subtract(resultHelper.hoursToWaitBeforeGetResult, 'hours'))) {
+		datafeeds.readExisting(feedName, function(exists, is_stable, value) {
+
+			if (exists) {
+				datafeeds.postDatafeedToAa(feedName, value, aa_address,  getpostDatafeedToAaCallbacks([from_address], aa_address, feedName, value));
+				handle();
+			} else {
+				insertIntoRequestedFixturesForAa();
+				var device = require('ocore/device.js');
+				device.sendMessageToDevice(from_address, 'text', "Result is being retrieved, please wait.");
+				retrieveAndPostResultToDag(fixture.urlResult, championship, feedName, resultHelper, function(txt, value) {
+					if (value)
+						datafeeds.postDatafeedToAa(feedName, value, aa_address,  getpostDatafeedToAaCallbacks([from_address], aa_address, feedName, value));
+					handle();
+				});
+			}
+		});
+	} else {
+		insertIntoRequestedFixturesForAa();
+		handle(`I will trigger your autonomous agent ${aa_address} as soon as result is available`);
+	}
+
+}
+
+
+function treatRequestForDagPosting(from_address, feedName, handle) {
+
 	var fixture = calendar.getFixtureFromFeedName(feedName);
 	var resultHelper = calendar.getResultHelperFromFeedName(feedName);
 	var championship = calendar.getChampionshipFromFeedName(feedName);
@@ -220,12 +269,12 @@ function getFeedStatus(from_address, feedName, handle) {
 				if (!is_stable) {
 					insertIntoRequestedFixtures();
 				}
-				handle(getResponseForFeedAlreadyInDAG(fixture, value, is_stable));
+				handle(getResponseForFeedAlreadyInDAG(fixture, value, is_stable, feedName));
 			} else {
 				insertIntoRequestedFixtures();
 				var device = require('ocore/device.js');
 				device.sendMessageToDevice(from_address, 'text', "Result is being retrieved, please wait.");
-				retrieveAndPostResult(fixture.urlResult, championship, feedName, resultHelper, function(txt) {
+				retrieveAndPostResultToDag(fixture.urlResult, championship, feedName, resultHelper, function(txt) {
 					handle(txt);
 				});
 			}
@@ -234,8 +283,55 @@ function getFeedStatus(from_address, feedName, handle) {
 		insertIntoRequestedFixtures();
 		handle("To bet on this fixture, select the Sport Oracle and use the feedname below when you offer the contract to your peer: \n\n" + feedName + "\n\nThe value should be the team you expect as winner or 'draw': \n" + "Eg: " + fixture.feedName + " = " + fixture.feedName.split('_')[1] 
 		+ "\n\nRules for " + championship + ": " + resultHelper.rules
-		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nFind more information about sport betting on our wiki: https://wiki.obyte.org/Sports_betting");
+		+ "\n\nResult is available "+ resultHelper.hoursToWaitBeforeGetResult +" hours after the fixture, you will be notified when the contract can be unlocked.\n\nFind more information about sport betting on our wiki: https://wiki.obyte.org/Sports_betting "
+		+	"\n\nYou can also request to "+ commons.getTxtCommandButton('trigger an autonomous agent',feedName + " trigger" )+" with this result.");
 	}
+}
+
+function getpostDatafeedToAaCallbacks(device_addresses, aa_address, feedName, value){
+	return {
+		ifNotAa: function(){
+			var device = require('ocore/device.js');
+			device_addresses.forEach(function (device_address){
+				device.sendMessageToDevice(device_address, 'text', `${aa_address} is not an autonomous agent address, I couldn't trigger it with result for ${feedName}.`);
+			});
+			return commons.deleteAaHavingRequestedFixturesFromDB(feedName, aa_address);
+		},
+		ifNotPayingAa: function(){
+			var device = require('ocore/device.js');
+			device_addresses.forEach(function (device_address){
+				device.sendMessageToDevice(device_address, 'text', `${aa_address} doesn't refund at least ${conf.expectedPaymentFromAa} bytes to oracle.`);
+			});
+				return commons.deleteAaHavingRequestedFixturesFromDB(feedName, aa_address);
+
+		},
+		ifError: function(error) {
+			var device = require('ocore/device.js');
+			device_addresses.forEach(function (device_address){
+				return device.sendMessageToDevice(device_address, 'text', `Internal error, couldn't trigger your AA. I will retry later ${error}`);
+			});
+
+		},
+		ifSuccess: function() {
+			var device = require('ocore/device.js');
+			device_addresses.forEach(function (device_address){
+				device.sendMessageToDevice(device_address, 'text', `I triggered your AA ${aa_address} with ${feedName} = ${value}`);
+			});
+			return commons.deleteAaHavingRequestedFixturesFromDB(feedName, aa_address);
+		}
+	}
+}
+
+function postResultToAas(feedName, value){
+
+	db.query("SELECT DISTINCT feed_name, aa_address FROM aa_having_requested_fixture WHERE feed_name=?", [feedName], function(rows){
+		rows.forEach(function(row){
+			db.query("SELECT DISTINCT device_address FROM aa_having_requested_fixture WHERE feed_name=? AND aa_address=?", [feedName, row.aa_address], function(device_addresses){
+				datafeeds.postDatafeedToAa(feedName, value, row.aa_address,  getpostDatafeedToAaCallbacks(device_addresses.map(function(address){return address.device_address}), row.aa_address, feedName,value));
+			});
+	
+		})
+	});
 }
 
 
@@ -248,10 +344,10 @@ function notifyForDatafeedPosted(feedName, value) {
 				function(row) {
 					var device = require('ocore/device.js');
 					device.sendMessageToDevice(row.device_address, 'text', "Sport oracle posted " + feedName + " = " + value);
+					commons.deleteDevicesHavingRequestedFixturesFromDB(feedName, row.device_address);
 				}
 			)
 
-			commons.deleteFromDB(feedName);
 		}
 	);
 }
@@ -262,8 +358,8 @@ function notifyForDatafeedPosted(feedName, value) {
 function findFixturesToCheckAndGetResult() {
 
 	db.query(
-		"SELECT feed_name,result_url,(strftime('%s','now') - strftime('%s',fixture_date) - hours_to_wait * 3600) AS time_from_first_check FROM requested_fixtures WHERE  \n\
-		(fixture_date < datetime('now', '-' || hours_to_wait ||' hours') AND has_critical_error=0) \n\
+		"SELECT feed_name,result_url,(strftime('%s','now') - strftime('%s',fixture_date) - hours_to_wait * 3600) AS time_from_first_check FROM requested_fixtures \n\
+		WHERE (fixture_date < datetime('now', '-' || hours_to_wait ||' hours') AND has_critical_error=0) \n\
 		OR \n\
 		(time_from_first_check/3600.0*12.0 LIKE '%.0%' AND has_critical_error=1)", //try to recheck every 12 hours fixtures having critical errors
 		function(rows) {
@@ -272,13 +368,21 @@ function findFixturesToCheckAndGetResult() {
 					if (calendar.isThereChampionshipReloading())
 						return;
 					if (calendar.getFixtureFromFeedName(row.feed_name)) {
-						datafeeds.readExisting(row.feed_name, function(exists) {
+						datafeeds.readExisting(row.feed_name, function(exists, is_stable, existing_value) {
 							if(!exists)
-							retrieveAndPostResult(row.result_url, calendar.getChampionshipFromFeedName(row.feed_name), row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function() {});
+								retrieveAndPostResultToDag(row.result_url, calendar.getChampionshipFromFeedName(row.feed_name), row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function(text, retrieved_value) {
+									if (retrieved_value){
+										console.error("retrieved_value " + retrieved_value);
+										postResultToAas(row.feed_name, retrieved_value);
+									}
+								});
+								if (existing_value)
+									postResultToAas(row.feed_name, existing_value);
 						});
 					} else {
 						notifications.notifyAdmin("Championship " + row.feed_name + " not in calendar anymore, can't get result", "");
-						commons.deleteFromDB(row.feed_name);
+						commons.deleteAllRequestedFixtures(row.feed_name);
+						
 					}
 				}
 			)
@@ -294,10 +398,27 @@ eventBus.on('paired', function(from_address) {
 	device.sendMessageToDevice(from_address, 'text', getHomeInstructions());
 });
 
+
+eventBus.on('object', function(from_address,  object) {
+
+	if (!object.time_limit || typeof object.time_limit != 'number' || object.time_limit  < new Date() / 1000)
+		return;
+
+	if (object.action == "get_calendar"){
+
+		var returnedObject = calendar.getPublicCalendar();
+		returnedObject
+		return device.sendMessageToDevice(from_address, 'object', calendar.getPublicCalendar());
+
+	}
+
+
+});
+
+
 eventBus.on('text', function(from_address, text) {
 	var device = require('ocore/device.js');
 	text = text.trim();
-	let ucText = text.toUpperCase();
  
 	if (!assocPeers[from_address]) {
 		assocPeers[from_address] = {
@@ -308,7 +429,7 @@ eventBus.on('text', function(from_address, text) {
 /*
 * if return home
 */
-	if (text == "home") {
+	if (text == "home" || text == "cancel") {
 		assocPeers[from_address].step = 'home';
 	}
 
@@ -336,15 +457,45 @@ eventBus.on('text', function(from_address, text) {
 		return device.sendMessageToDevice(from_address, 'text', getChampionshipInstructions(text));
 	}
 
+/*
+* if fixture requested for AA
+*/
+	if (text.split(' ').length == 2){
+		var feedName = text.split(' ')[0];
+		var aa_address = text.split(' ')[1];
+
+		if (calendar.getFixtureFromFeedName(feedName) && validationUtils.isValidAddress(aa_address)) {
+			treatRequestForAaPosting(from_address, feedName, aa_address, function(response){
+				device.sendMessageToDevice(from_address, 'text', response);
+			});
+			return;
+		}
+		if (calendar.getFixtureFromFeedName(feedName) && aa_address == 'trigger') {
+			assocPeers[from_address].feedName = feedName;
+			assocPeers[from_address].step = 'request_aa_address';
+			return device.sendMessageToDevice(from_address, 'text', `Enter the autonomous agent you want to trigger with result for ${feedName} or ${commons.getTxtCommandButton('cancel')}`);
+		}
+	}
+
 
 /*
 * if fixture requested
 */
 	if (calendar.getFixtureFromFeedName(text)) {
-		getFeedStatus(from_address, text, function(response) {
+		treatRequestForDagPosting(from_address, text, function(response) {
 			device.sendMessageToDevice(from_address, 'text', response);
 		});
 		return;
+	}
+
+	if (assocPeers[from_address].step == "request_aa_address") {
+		if (validationUtils.isValidAddress(text)){
+			return treatRequestForAaPosting(from_address, assocPeers[from_address].feedName, text, function(response){
+				assocPeers[from_address].step = 'home';
+				device.sendMessageToDevice(from_address, 'text', response);
+			});
+		}
+		return device.sendMessageToDevice(from_address, 'text', `Not a valid address, try again or ${feedName} or ${commons.getTxtCommandButton('cancel')}`);
 	}
 
 
@@ -368,15 +519,16 @@ eventBus.on('text', function(from_address, text) {
 
 
 
-function getResponseForFeedAlreadyInDAG(fixture, result, is_stable) {
-	return fixture.homeTeamName + ' vs ' + fixture.awayTeamName + '\n' +
+function getResponseForFeedAlreadyInDAG(fixture, result, is_stable, feedName) {
+	return fixture.homeTeam + ' vs ' + fixture.awayTeam + '\n' +
 		'on ' + fixture.localDay.format("DD MMMM YYYY") + '\n' +
 		(result === 'draw' ? 'draw' : result + ' won') +
 		(is_stable ?
-			"\n\nThe data is already in the database, you can unlock your smart contract now." :
-			"\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract.");
+			"\n\nThe data is already in the database, you can unlock your smart contract now." +
+			"You can also request to "+ commons.getTxtCommandButton('trigger an autonomous agent',feedName + " trigger" )+" with this result.":
+			"\n\nThe data will be added into the database, I'll let you know when it is confirmed and you are able to unlock your contract." +
+			"You can also request to "+ commons.getTxtCommandButton('trigger an autonomous agent',feedName + " trigger" )+" with this result.");
 }
-
 
 
 function checkUsingSecondSource(championship, feedName, UTCdate, result, callbacks) {

@@ -6,6 +6,10 @@ const headlessWallet = require('headless-obyte');
 const notifications = require('./notifications.js');
 const conf = require('ocore/conf.js');
 const objectHash = require('ocore/object_hash.js');
+const aa_composer = require('ocore/aa_composer.js');
+const data_feeds = require('ocore/data_feeds.js');
+const storage = require('ocore/storage.js');
+const commons = require('./commons.js');
 
 const RETRY_TIMEOUT = 5 * 60 * 1000;
 const WITNESSING_COST = 600; // size of typical witnessing unit
@@ -144,19 +148,90 @@ function readExisting(feed_name, handleResult) {
 	if (assocQueuedDataFeeds[feed_name]) {
 		return handleResult(true, 0, assocQueuedDataFeeds[feed_name]);
 	}
-	db.query(
-		"SELECT feed_name, is_stable, value \n\
-		FROM data_feeds CROSS JOIN unit_authors USING(unit) CROSS JOIN units USING(unit) \n\
-		WHERE address=? AND feed_name=?", [my_address, feed_name],
-		function(rows) {
-			if (rows.length === 0)
-				return handleResult(false);
-			if (rows.length > 1)
-				notifications.notifyAdmin(rows.length + ' entries for feed', feed_name);
-			return handleResult(true, rows[0].is_stable, rows[0].value);
-		}
-	);
+	data_feeds.readDataFeedValue([my_address], feed_name, null, 0, 10000000000000, false, "abort", function(objResult){
+		if (objResult.value === undefined)
+			return handleResult(false);
+		if (objResult.bAbortedBecauseOfSeveral)
+			notifications.notifyAdmin('Multiple entries for feed', feed_name);
+		storage.readLastMainChainIndex(function(last_mci){
+			if (objResult.mci <= last_mci)
+				return handleResult(true, true, objResult.value);
+			else
+				return handleResult(true, false, objResult.value);
+		});
+		
+	})
+
 }
+
+function postDatafeedToAa(feedName, value, aa_address, callbacks){
+	db.query("SELECT definition FROM aa_addresses WHERE address=?", [aa_address], function(rows){
+		if (!rows[0]){
+			commons.deleteAaHavingRequestedFixturesFromDB(aa_address);
+			return callbacks.ifNotAa();
+		}
+
+		var trigger = { 
+			outputs: {base: 10000}, 
+			address: my_address,
+			data: {}
+		
+		};
+		trigger.data[feedName] = value;
+		var paymentToMe = 0;
+		aa_composer.dryRunPrimaryAATrigger(trigger, aa_address, JSON.parse(rows[0].definition), function (arrResponses) {
+			arrResponses.forEach(function (objResponse) {
+				if (objResponse.objResponseUnit && objResponse.objResponseUnit.messages){
+					objResponse.objResponseUnit.messages.forEach(function (message) {
+						if (message.app === 'payment') {
+							message.payload.outputs.forEach(function (output) {
+								if (output.address === my_address)
+									paymentToMe += output.amount;
+							});
+						}
+					});
+				}
+			})
+
+			if (paymentToMe < conf.expectedPaymentFromAa)
+				return callbacks.ifNotPayingAa();
+				
+			var network = require('ocore/network.js');
+			var composer = require('ocore/composer.js');
+			var params = {
+				paying_addresses: [my_address],
+				outputs: [{address: aa_address, amount: 10000},{address: my_address, amount:0}],
+				signer: headlessWallet.signer,
+				callbacks: composer.getSavingCallbacks({
+					ifNotEnoughFunds: function(){
+						console.log("payment failed cause not enough found");
+						callbacks.ifError();
+					},
+					ifError: function(error){
+						console.log("payment failed " + error);
+						callbacks.ifError();
+					},
+					ifOk: function(objJoint) {
+						network.broadcastJoint(objJoint);
+						callbacks.ifSuccess();
+					}
+				})
+			};
+
+			var objMessage = {
+				app: "data",
+				payload_location: "inline",
+				payload_hash: objectHash.getBase64Hash(trigger.data),
+				payload: trigger.data
+			};
+			params.messages = [objMessage];
+			composer.composeJoint(params);
+
+		});
+	});
+
+}
+
 
 eventBus.on('headless_wallet_ready', function() {
 
@@ -167,3 +242,4 @@ eventBus.on('headless_wallet_ready', function() {
 
 exports.reliablyPost = reliablyPost;
 exports.readExisting = readExisting;
+exports.postDatafeedToAa = postDatafeedToAa;
