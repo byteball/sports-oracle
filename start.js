@@ -27,7 +27,7 @@ function loadChampionships(){
 	//------The different feeds are added to the calendar
 	//------The 2 first arguments specify category and keyword
 	//mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2019-regular/');
-	mySportFeed.getFixturesAndPushIntoCalendar('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2020-playoff/');
+	//mySportFeed.getFixturesAndPushIntoCalendar('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2020-playoff/');
 	mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2019-regular/');
 	mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2019-regular/');
 
@@ -219,7 +219,7 @@ function treatRequestForAaPosting(from_address, feedName, aa_address, handle){
 		datafeeds.readExisting(feedName, function(exists, is_stable, value) {
 
 			if (exists) {
-				datafeeds.postDatafeedToAa(feedName, value, aa_address,  getpostDatafeedToAaCallbacks([from_address], aa_address, feedName, value));
+				datafeeds.postDatafeedToAa(feedName, value, aa_address,  getDatafeedPostingToAaCallbacks([from_address], aa_address, feedName, value));
 				handle();
 			} else {
 				insertIntoRequestedFixturesForAa();
@@ -227,7 +227,7 @@ function treatRequestForAaPosting(from_address, feedName, aa_address, handle){
 				device.sendMessageToDevice(from_address, 'text', "Result is being retrieved, please wait.");
 				retrieveAndPostResultToDag(fixture.urlResult, championship, feedName, resultHelper, function(txt, value) {
 					if (value)
-						datafeeds.postDatafeedToAa(feedName, value, aa_address,  getpostDatafeedToAaCallbacks([from_address], aa_address, feedName, value));
+						datafeeds.postDatafeedToAa(feedName, value, aa_address,  getDatafeedPostingToAaCallbacks([from_address], aa_address, feedName, value));
 					handle();
 				});
 			}
@@ -288,7 +288,7 @@ function treatRequestForDagPosting(from_address, feedName, handle) {
 	}
 }
 
-function getpostDatafeedToAaCallbacks(device_addresses, aa_address, feedName, value){
+function getDatafeedPostingToAaCallbacks(device_addresses, aa_address, feedName, value){
 	return {
 		ifNotAa: function(){
 			var device = require('ocore/device.js');
@@ -327,7 +327,7 @@ function postResultToAas(feedName, value){
 	db.query("SELECT DISTINCT feed_name, aa_address FROM aa_having_requested_fixture WHERE feed_name=?", [feedName], function(rows){
 		rows.forEach(function(row){
 			db.query("SELECT DISTINCT device_address FROM aa_having_requested_fixture WHERE feed_name=? AND aa_address=?", [feedName, row.aa_address], function(device_addresses){
-				datafeeds.postDatafeedToAa(feedName, value, row.aa_address,  getpostDatafeedToAaCallbacks(device_addresses.map(function(address){return address.device_address}), row.aa_address, feedName,value));
+				datafeeds.postDatafeedToAa(feedName, value, row.aa_address,  getDatafeedPostingToAaCallbacks(device_addresses.map(function(address){return address.device_address}), row.aa_address, feedName,value));
 			});
 	
 		})
@@ -409,9 +409,7 @@ eventBus.on('object', function(from_address,  object) {
 		var returnedObject = calendar.getPublicCalendar();
 		returnedObject
 		return device.sendMessageToDevice(from_address, 'object', calendar.getPublicCalendar());
-
 	}
-
 
 });
 
@@ -434,7 +432,7 @@ eventBus.on('text', function(from_address, text) {
 	}
 
 /*
-* if JSON calendar requested
+* if JSON calendar requested - being deprecated use 'object'-'get_calendar' event instead
 */	
 	if (text == "/JSON") {
 		return device.sendMessageToDevice(from_address, 'text', calendar.getPublicCalendar());
@@ -566,7 +564,7 @@ eventBus.on('headless_wallet_ready', function() {
 		process.exit(1);
 	}
 
-setTimeout(findFixturesToCheckAndGetResult, 1000 * 10); //wait that the calendar is intitialized
-setInterval(findFixturesToCheckAndGetResult, 1000 * 3600);
+	setTimeout(findFixturesToCheckAndGetResult, 1000 * 10); //wait that the calendar is intitialized
+	setInterval(findFixturesToCheckAndGetResult, 1000 * 3600);
 
 });
