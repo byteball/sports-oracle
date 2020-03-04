@@ -148,7 +148,7 @@ function readExisting(feed_name, handleResult) {
 	if (assocQueuedDataFeeds[feed_name]) {
 		return handleResult(true, 0, assocQueuedDataFeeds[feed_name]);
 	}
-	data_feeds.readDataFeedValue([my_address], feed_name, null, 0, 10000000000000, false, "abort", function(objResult){
+	data_feeds.readDataFeedValue([my_address], feed_name, null, 0, Infinity, false, "abort", function(objResult){
 		if (objResult.value === undefined)
 			return handleResult(false);
 		if (objResult.bAbortedBecauseOfSeveral)
@@ -175,8 +175,8 @@ function postDatafeedToAa(feedName, value, aa_address, callbacks){
 			outputs: {base: 10000}, 
 			address: my_address,
 			data: {}
-		
 		};
+		
 		trigger.data[feedName] = value;
 		var paymentToMe = 0;
 		aa_composer.dryRunPrimaryAATrigger(trigger, aa_address, JSON.parse(rows[0].definition), function (arrResponses) {
