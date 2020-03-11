@@ -195,7 +195,7 @@ function getPublicCalendar() {
 }
 
 function isAmericanDST(event_day){
-	if (event_day > "2019-11-02" && event_day < "2020-03-8")
+	if (event_day > "2020-11-01" && event_day < "2021-03-14")
 		return false;
 	else
 		return true;
