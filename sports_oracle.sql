@@ -22,3 +22,10 @@ CREATE TABLE aa_having_requested_fixture (
 	feed_name TEXT NOT NULL,
 	UNIQUE(aa_address, feed_name, device_address)
 );
+
+CREATE TABLE triggered_aas (
+	aa_address CHAR(32) NOT NULL,
+	feed_name TEXT NOT NULL,
+	UNIQUE(aa_address, feed_name)
+);
+

@@ -318,6 +318,13 @@ function getDatafeedPostingToAaCallbacks(device_addresses, aa_address, feedName,
 				device.sendMessageToDevice(device_address, 'text', `I triggered your AA ${aa_address} with ${feedName} = ${value}`);
 			});
 			return commons.deleteAaHavingRequestedFixturesFromDB(feedName, aa_address);
+		},
+		ifAlreadyTriggered: function() {
+			var device = require('ocore/device.js');
+			device_addresses.forEach(function (device_address){
+				device.sendMessageToDevice(device_address, 'text', `AA ${aa_address} was already triggered with ${feedName} = ${value}`);
+			});
+			return commons.deleteAaHavingRequestedFixturesFromDB(feedName, aa_address);
 		}
 	}
 }
@@ -372,7 +379,6 @@ function findFixturesToCheckAndGetResult() {
 							if(!exists)
 								retrieveAndPostResultToDag(row.result_url, calendar.getChampionshipFromFeedName(row.feed_name), row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function(text, retrieved_value) {
 									if (retrieved_value){
-										console.error("retrieved_value " + retrieved_value);
 										postResultToAas(row.feed_name, retrieved_value);
 									}
 								});

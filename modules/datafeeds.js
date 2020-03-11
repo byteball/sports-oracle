@@ -15,6 +15,7 @@ const RETRY_TIMEOUT = 5 * 60 * 1000;
 const WITNESSING_COST = 600; // size of typical witnessing unit
 
 var assocQueuedDataFeeds = {};
+var assocQueuedDataFeedsToAa = {};
 var count_witnessings_available = 0;
 var my_address;
 
@@ -165,68 +166,95 @@ function readExisting(feed_name, handleResult) {
 }
 
 function postDatafeedToAa(feedName, value, aa_address, callbacks){
-	db.query("SELECT definition FROM aa_addresses WHERE address=?", [aa_address], function(rows){
-		if (!rows[0]){
-			commons.deleteAaHavingRequestedFixturesFromDB(aa_address);
-			return callbacks.ifNotAa();
+
+	if (assocQueuedDataFeedsToAa[feedName + aa_address]){
+		console.log(feedName + ' to ' + aa_address + " already queued");
+		return callbacks.ifError();
+	}
+	assocQueuedDataFeedsToAa[feedName + aa_address] = true;
+
+	function deleteFromQueue(){
+		assocQueuedDataFeedsToAa[feedName + aa_address] = false;
+	}
+
+	db.query("SELECT 1 FROM triggered_aas WHERE aa_address=? AND feed_name=?", [aa_address, feedName], function(rows){
+		if (rows.length === 1){
+			deleteFromQueue();
+			return callbacks.ifAlreadyTriggered();
 		}
 
-		var trigger = { 
-			outputs: {base: 10000}, 
-			address: my_address,
-			data: {}
-		};
-		
-		trigger.data[feedName] = value;
-		var paymentToMe = 0;
-		aa_composer.dryRunPrimaryAATrigger(trigger, aa_address, JSON.parse(rows[0].definition), function (arrResponses) {
-			arrResponses.forEach(function (objResponse) {
-				if (objResponse.objResponseUnit && objResponse.objResponseUnit.messages){
-					objResponse.objResponseUnit.messages.forEach(function (message) {
-						if (message.app === 'payment') {
-							message.payload.outputs.forEach(function (output) {
-								if (output.address === my_address)
-									paymentToMe += output.amount;
-							});
-						}
-					});
-				}
-			})
+		db.query("SELECT definition FROM aa_addresses WHERE address=?", [aa_address], function(rows){
+			if (!rows[0]){
+				commons.deleteAaHavingRequestedFixturesFromDB(aa_address);
+				deleteFromQueue();
+				return callbacks.ifNotAa();
+			}
 
-			if (paymentToMe < conf.expectedPaymentFromAa)
-				return callbacks.ifNotPayingAa();
-				
-			var network = require('ocore/network.js');
-			var composer = require('ocore/composer.js');
-			var params = {
-				paying_addresses: [my_address],
-				outputs: [{address: aa_address, amount: 10000},{address: my_address, amount:0}],
-				signer: headlessWallet.signer,
-				callbacks: composer.getSavingCallbacks({
-					ifNotEnoughFunds: function(){
-						console.log("payment failed cause not enough found");
-						callbacks.ifError();
-					},
-					ifError: function(error){
-						console.log("payment failed " + error);
-						callbacks.ifError();
-					},
-					ifOk: function(objJoint) {
-						network.broadcastJoint(objJoint);
-						callbacks.ifSuccess();
+			var trigger = { 
+				outputs: {base: 10000}, 
+				address: my_address,
+				data: {}
+			};
+			
+			trigger.data[feedName] = value;
+			var paymentToMe = 0;
+			aa_composer.dryRunPrimaryAATrigger(trigger, aa_address, JSON.parse(rows[0].definition), function (arrResponses) {
+				arrResponses.forEach(function (objResponse) {
+					process.stdout.write(JSON.stringify(objResponse));
+					if (objResponse.objResponseUnit && objResponse.objResponseUnit.messages){
+						objResponse.objResponseUnit.messages.forEach(function (message) {
+							if (message.app === 'payment') {
+								message.payload.outputs.forEach(function (output) {
+									if (output.address === my_address)
+										paymentToMe += output.amount;
+								});
+							}
+						});
 					}
 				})
-			};
 
-			var objMessage = {
-				app: "data",
-				payload_location: "inline",
-				payload_hash: objectHash.getBase64Hash(trigger.data),
-				payload: trigger.data
-			};
-			params.messages = [objMessage];
-			composer.composeJoint(params);
+				if (paymentToMe < conf.expectedPaymentFromAa){
+					deleteFromQueue();
+					return callbacks.ifNotPayingAa();
+				}
+					
+				var network = require('ocore/network.js');
+				var composer = require('ocore/composer.js');
+				var params = {
+					paying_addresses: [my_address],
+					outputs: [{address: aa_address, amount: 10000},{address: my_address, amount:0}],
+					signer: headlessWallet.signer,
+					callbacks: composer.getSavingCallbacks({
+						ifNotEnoughFunds: function(){
+							console.log("payment failed cause not enough found");
+							deleteFromQueue();
+							callbacks.ifError();
+						},
+						ifError: function(error){
+							console.log("payment failed " + error);
+							deleteFromQueue();
+							callbacks.ifError();
+						},
+						ifOk: function(objJoint) {
+							network.broadcastJoint(objJoint);
+							db.query("INSERT INTO triggered_aas (aa_address, feed_name) VALUES (?,?)", [aa_address,feedName], function(){ 
+								deleteFromQueue();
+								callbacks.ifSuccess();
+							});
+						}
+					})
+				};
 
+				var objMessage = {
+					app: "data",
+					payload_location: "inline",
+					payload_hash: objectHash.getBase64Hash(trigger.data),
+					payload: trigger.data
+				};
+				params.messages = [objMessage];
+				composer.composeJoint(params);
+
+			});
 		});
 	});
 
