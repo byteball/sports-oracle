@@ -200,7 +200,6 @@ function postDatafeedToAa(feedName, value, aa_address, callbacks){
 			var paymentToMe = 0;
 			aa_composer.dryRunPrimaryAATrigger(trigger, aa_address, JSON.parse(rows[0].definition), function (arrResponses) {
 				arrResponses.forEach(function (objResponse) {
-					process.stdout.write(JSON.stringify(objResponse));
 					if (objResponse.objResponseUnit && objResponse.objResponseUnit.messages){
 						objResponse.objResponseUnit.messages.forEach(function (message) {
 							if (message.app === 'payment') {
