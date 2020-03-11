@@ -35,7 +35,7 @@ function deleteDevicesHavingRequestedFixturesFromDB(feedName, device_address){
 		var arrQueries = [];
 		conn.addQuery(arrQueries, "BEGIN");
 		conn.addQuery(arrQueries, "DELETE FROM devices_having_requested_fixture WHERE feed_name=? AND device_address=?",[feedName, device_address]);
-		conn.addQuery(arrQueries, "DELETE FROM requested_fixtures WHERE feed_name=? AND feed_name NOT IN (SELECT feed_name FROM aa_having_requested_fixture)\n\
+		conn.addQuery(arrQueries, "DELETE FROM requested_fixtures WHERE feed_name=? AND feed_name NOT IN (SELECT feed_name FROM aas_having_requested_fixture)\n\
 		AND feed_name NOT IN (SELECT feed_name FROM devices_having_requested_fixture)",[feedName]);
 		conn.addQuery(arrQueries, "COMMIT");
 		async.series(arrQueries, function() {
@@ -51,8 +51,8 @@ function deleteAaHavingRequestedFixturesFromDB(feedName, aa_address){
 	db.takeConnectionFromPool(function(conn) {
 		var arrQueries = [];
 		conn.addQuery(arrQueries, "BEGIN");
-		conn.addQuery(arrQueries, "DELETE FROM aa_having_requested_fixture WHERE feed_name=? AND aa_address=?",[feedName, aa_address]);
-		conn.addQuery(arrQueries, "DELETE FROM requested_fixtures WHERE feed_name=? AND feed_name NOT IN (SELECT feed_name FROM aa_having_requested_fixture)\n\
+		conn.addQuery(arrQueries, "DELETE FROM aas_having_requested_fixture WHERE feed_name=? AND aa_address=?",[feedName, aa_address]);
+		conn.addQuery(arrQueries, "DELETE FROM requested_fixtures WHERE feed_name=? AND feed_name NOT IN (SELECT feed_name FROM aas_having_requested_fixture)\n\
 		AND feed_name NOT IN (SELECT feed_name FROM devices_having_requested_fixture)",[feedName]);		conn.addQuery(arrQueries, "COMMIT");
 		async.series(arrQueries, function() {
 			conn.release();
@@ -68,7 +68,7 @@ function deleteAllRequestedFixtures(feedName){
 		var arrQueries = [];
 		conn.addQuery(arrQueries, "BEGIN");
 		conn.addQuery(arrQueries, "DELETE FROM requested_fixtures WHERE feed_name=?",[feedName]);
-		conn.addQuery(arrQueries, "DELETE FROM aa_having_requested_fixture WHERE feed_name=?",[feedName]);
+		conn.addQuery(arrQueries, "DELETE FROM aas_having_requested_fixture WHERE feed_name=?",[feedName]);
 		conn.addQuery(arrQueries, "DELETE FROM devices_having_requested_fixture WHERE feed_name=?",[feedName]);
 		conn.addQuery(arrQueries, "COMMIT");
 		async.series(arrQueries, function() {

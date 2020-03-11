@@ -207,7 +207,7 @@ function treatRequestForAaPosting(from_address, feedName, aa_address, handle){
 			var arrQueries = [];
 			conn.addQuery(arrQueries, "BEGIN");
 			conn.addQuery(arrQueries, "INSERT OR IGNORE INTO requested_fixtures ( feed_name, fixture_date, result_url, hours_to_wait) VALUES (?,?,?,?) ",[feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"),fixture.urlResult,resultHelper.hoursToWaitBeforeGetResult]);
-			conn.addQuery(arrQueries, "INSERT OR IGNORE INTO aa_having_requested_fixture (device_address, feed_name, aa_address) VALUES (?,?,?)",[from_address, feedName, aa_address]);
+			conn.addQuery(arrQueries, "INSERT OR IGNORE INTO aas_having_requested_fixture (device_address, feed_name, aa_address) VALUES (?,?,?)",[from_address, feedName, aa_address]);
 			conn.addQuery(arrQueries, "COMMIT");
 			async.series(arrQueries, function() {
 				conn.release();
@@ -322,9 +322,9 @@ function getDatafeedPostingToAaCallbacks(device_addresses, aa_address, feedName,
 
 function postResultToAas(feedName, value){
 
-	db.query("SELECT DISTINCT feed_name, aa_address FROM aa_having_requested_fixture WHERE feed_name=?", [feedName], function(rows){
+	db.query("SELECT DISTINCT feed_name, aa_address FROM aas_having_requested_fixture WHERE feed_name=?", [feedName], function(rows){
 		rows.forEach(function(row){
-			db.query("SELECT DISTINCT device_address FROM aa_having_requested_fixture WHERE feed_name=? AND aa_address=?", [feedName, row.aa_address], function(device_addresses){
+			db.query("SELECT DISTINCT device_address FROM aas_having_requested_fixture WHERE feed_name=? AND aa_address=?", [feedName, row.aa_address], function(device_addresses){
 				datafeeds.postDatafeedToAa(feedName, value, row.aa_address,  getDatafeedPostingToAaCallbacks(device_addresses.map(function(address){return address.device_address}), row.aa_address, feedName,value));
 			});
 	

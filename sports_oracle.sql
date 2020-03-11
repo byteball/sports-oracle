@@ -16,7 +16,7 @@ CREATE TABLE devices_having_requested_fixture (
 );
 
 
-CREATE TABLE aa_having_requested_fixture (
+CREATE TABLE aas_having_requested_fixture (
 	aa_address CHAR(32) NOT NULL,
 	device_address CHAR(33) NOT NULL,
 	feed_name TEXT NOT NULL,
