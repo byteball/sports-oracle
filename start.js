@@ -306,8 +306,8 @@ function getDatafeedPostingToAaCallbacks(device_addresses, aa_address, feedName,
 			notifyDevices(`${aa_address} doesn't refund at least ${conf.expectedPaymentFromAa} bytes to oracle.`);
 			return commons.deleteAaHavingRequestedFixturesFromDB(feedName, aa_address);
 		},
-		ifError: function(error) {
-			return notifyDevices(`Internal error, couldn't trigger your AA. I will retry later ${error}`);
+		ifError: function() {
+			return notifyDevices(`Internal error, couldn't trigger your AA. I will retry later.`);
 		},
 		ifSuccess: function() {
 			notifyDevices(`I triggered your AA ${aa_address} with ${feedName} = ${value}`);
