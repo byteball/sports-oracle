@@ -180,8 +180,8 @@ function postDatafeedToAa(feedName, value, aa_address, callbacks){
 			return callbacks.ifAlreadyTriggered();
 		}
 
-		db.query("SELECT definition FROM aa_addresses WHERE address=?", [aa_address], function(rows){
-			if (!rows[0]){
+		storage.readAADefinition(db, aa_address, function(definition){
+			if (!definition){
 				commons.deleteAaHavingRequestedFixturesFromDB(aa_address);
 				deleteFromQueue();
 				return callbacks.ifNotAa();
@@ -195,7 +195,7 @@ function postDatafeedToAa(feedName, value, aa_address, callbacks){
 			
 			trigger.data[feedName] = value;
 			var paymentToMe = 0;
-			aa_composer.dryRunPrimaryAATrigger(trigger, aa_address, JSON.parse(rows[0].definition), function (arrResponses) {
+			aa_composer.dryRunPrimaryAATrigger(trigger, aa_address, definition, function (arrResponses) {
 				arrResponses.forEach(function (objResponse) {
 					if (objResponse.objResponseUnit && objResponse.objResponseUnit.messages){
 						objResponse.objResponseUnit.messages.forEach(function (message) {
