@@ -154,21 +154,16 @@ function postDatafeedToAa(feedName, value, aa_address, callbacks){
 						console.log("payment failed " + err);
 						deleteFromQueue();
 						callbacks.ifError();
-
 					} else {
 						db.query("INSERT INTO triggered_aas (aa_address, feed_name) VALUES (?,?)", [aa_address,feedName], function(){ 
 							deleteFromQueue();
 							callbacks.ifSuccess();
 						});
-
 					}
-					
 				});
-
 			});
 		});
 	});
-
 }
 
 
@@ -178,7 +173,7 @@ function readMyUnstableDatafeed(feed_name){
 		var objUnit = storage.assocUnstableUnits[unit] || storage.assocStableUnits[unit];
 		if (!objUnit)
 			throw Error("unstable unit " + unit + " not in assoc");
-		if (objUnit.author_addresses != my_address)
+		if (objUnit.author_addresses[0] != my_address)
 			continue;
 		storage.assocUnstableMessages[unit].forEach(function (message) {
 			if (message.app !== 'data_feed')
