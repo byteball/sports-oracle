@@ -147,20 +147,17 @@ function reliablyPost(datafeed) {
 
 function readExisting(feed_name, handleResult) {
 	if (assocQueuedDataFeeds[feed_name]) {
-		return handleResult(true, 0, assocQueuedDataFeeds[feed_name]);
+		return handleResult(true, false, assocQueuedDataFeeds[feed_name]);
 	}
-	data_feeds.readDataFeedValue([my_address], feed_name, null, 0, Infinity, false, "abort", function(objResult){
+
+	var unstableDatafeedValue = readMyUnstableDatafeed(feed_name);
+	if (unstableDatafeedValue)
+		return handleResult(true, false, unstableDatafeedValue);
+
+	data_feeds.readDataFeedValue([my_address], feed_name, null, 0, Infinity, false, "last", function(objResult){
 		if (objResult.value === undefined)
 			return handleResult(false);
-		if (objResult.bAbortedBecauseOfSeveral)
-			notifications.notifyAdmin('Multiple entries for feed', feed_name);
-		storage.readLastMainChainIndex(function(last_mci){
-			if (objResult.mci <= last_mci)
-				return handleResult(true, true, objResult.value);
-			else
-				return handleResult(true, false, objResult.value);
-		});
-		
+		return handleResult(true, true, objResult.value);
 	})
 
 }
@@ -177,8 +174,8 @@ function postDatafeedToAa(feedName, value, aa_address, callbacks){
 		assocQueuedDataFeedsToAa[feedName + aa_address] = false;
 	}
 
-	db.query("SELECT 1 FROM triggered_aas WHERE aa_address=? AND feed_name=?", [aa_address, feedName], function(rows){
-		if (rows.length === 1){
+	db.query("SELECT 1 FROM triggered_aas WHERE aa_address=? AND feed_name=?", [aa_address, feedName], function(triggered_aas_rows){
+		if (triggered_aas_rows.length === 1){
 			deleteFromQueue();
 			return callbacks.ifAlreadyTriggered();
 		}
@@ -259,6 +256,26 @@ function postDatafeedToAa(feedName, value, aa_address, callbacks){
 
 }
 
+
+function readMyUnstableDatafeed(feed_name){
+	var foundValue = null;
+	for (var unit in storage.assocUnstableMessages) {
+		var objUnit = storage.assocUnstableUnits[unit] || storage.assocStableUnits[unit];
+		if (!objUnit)
+			throw Error("unstable unit " + unit + " not in assoc");
+		if (objUnit.author_addresses != my_address)
+			continue;
+		storage.assocUnstableMessages[unit].forEach(function (message) {
+			if (message.app !== 'data_feed')
+				return;
+			var payload = message.payload;
+			if (!payload.hasOwnProperty(feed_name))
+				return;
+			foundValue = payload[feed_name];
+		});
+	}
+	return foundValue;
+}
 
 eventBus.on('headless_wallet_ready', function() {
 
