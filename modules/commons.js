@@ -29,12 +29,46 @@ function removeAccents(str) {
 	return str.join('');
 }
 
-function deleteFromDB(feedName){
+function deleteDevicesHavingRequestedFixturesFromDB(feedName, device_address){
+
+	db.takeConnectionFromPool(function(conn) {
+		var arrQueries = [];
+		conn.addQuery(arrQueries, "BEGIN");
+		conn.addQuery(arrQueries, "DELETE FROM devices_having_requested_fixture WHERE feed_name=? AND device_address=?",[feedName, device_address]);
+		conn.addQuery(arrQueries, "DELETE FROM requested_fixtures WHERE feed_name=? AND feed_name NOT IN (SELECT feed_name FROM aas_having_requested_fixture)\n\
+		AND feed_name NOT IN (SELECT feed_name FROM devices_having_requested_fixture)",[feedName]);
+		conn.addQuery(arrQueries, "COMMIT");
+		async.series(arrQueries, function() {
+			conn.release();
+		});
+	});
+	
+}
+
+
+function deleteAaHavingRequestedFixturesFromDB(feedName, aa_address){
+
+	db.takeConnectionFromPool(function(conn) {
+		var arrQueries = [];
+		conn.addQuery(arrQueries, "BEGIN");
+		conn.addQuery(arrQueries, "DELETE FROM aas_having_requested_fixture WHERE feed_name=? AND aa_address=?",[feedName, aa_address]);
+		conn.addQuery(arrQueries, "DELETE FROM requested_fixtures WHERE feed_name=? AND feed_name NOT IN (SELECT feed_name FROM aas_having_requested_fixture)\n\
+		AND feed_name NOT IN (SELECT feed_name FROM devices_having_requested_fixture)",[feedName]);		conn.addQuery(arrQueries, "COMMIT");
+		async.series(arrQueries, function() {
+			conn.release();
+		});
+	});
+	
+}
+
+
+function deleteAllRequestedFixtures(feedName){
 
 	db.takeConnectionFromPool(function(conn) {
 		var arrQueries = [];
 		conn.addQuery(arrQueries, "BEGIN");
 		conn.addQuery(arrQueries, "DELETE FROM requested_fixtures WHERE feed_name=?",[feedName]);
+		conn.addQuery(arrQueries, "DELETE FROM aas_having_requested_fixture WHERE feed_name=?",[feedName]);
 		conn.addQuery(arrQueries, "DELETE FROM devices_having_requested_fixture WHERE feed_name=?",[feedName]);
 		conn.addQuery(arrQueries, "COMMIT");
 		async.series(arrQueries, function() {
@@ -47,4 +81,6 @@ function deleteFromDB(feedName){
 exports.getTxtCommandButton = getTxtCommandButton;
 exports.removeAbbreviations = removeAbbreviations;
 exports.removeAccents = removeAccents;
-exports.deleteFromDB = deleteFromDB;
+exports.deleteDevicesHavingRequestedFixturesFromDB = deleteDevicesHavingRequestedFixturesFromDB;
+exports.deleteAaHavingRequestedFixturesFromDB = deleteAaHavingRequestedFixturesFromDB;
+exports.deleteAllRequestedFixtures = deleteAllRequestedFixtures;
