@@ -401,6 +401,7 @@ eventBus.on('object', function(from_address,  object) {
 		return;
 
 	if (object.action == "get_calendar"){
+		var device = require('ocore/device.js');
 		return device.sendMessageToDevice(from_address, 'object', calendar.getPublicCalendar());
 	}
 
