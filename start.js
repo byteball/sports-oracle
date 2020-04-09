@@ -52,12 +52,17 @@ if (!conf.bRunWitness)
 
 function getHomeInstructions() {
 	var instructions = "Please choose a championship:\n";
+
+	if (calendar.getAllCategories().length === 0)
+		instructions = "Sorry, no championship available.";
+
 	calendar.getAllCategories().forEach(function(cat) {
 		instructions += '\n---' + cat + '---\n';
 		calendar.getAllChampionshipsFromCategory(cat).forEach(function(championship){
 			instructions += commons.getTxtCommandButton(championship) + ' ';
 		});
 	});
+
 	instructions+= "\n------------------------------------------------------\nFor information about sports betting, please visit our wiki: https://wiki.obyte.org/Sports_betting"
 	return instructions;
 }
