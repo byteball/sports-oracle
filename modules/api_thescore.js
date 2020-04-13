@@ -2,22 +2,15 @@
 "use strict";
 const moment = require('moment');
 const request = require('request');
-const calendar = require('./calendar.js');
-const fs = require("fs");
 const notifications = require('./notifications.js');
+const commons = require('./commons.js');
 
-var soccerTeamsCorrespondence = {}
-fs.readFile('./soccerTeamsCorrespondence.json', (err, content) => {
-	if (err)
-		throw Error("Could'nt read soccerTeamsCorrespondence.json" + err);
-	soccerTeamsCorrespondence= JSON.parse(content);
-});
+var soccerTeamsCorrespondence = require("../config/theScoreSoccerTeamsCorrespondence.json");
 
 function canCheckChampionship(championship){
 	if (championship == 'NBA' || championship == 'MLB' || championship == 'NHL' || championship == 'NFL' || soccerTeamsCorrespondence[championship])
 		return true;
 	return false;
-	
 }
 
 
@@ -51,8 +44,8 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 						return next();
 					}
 				} else {
-					var feedHomeTeamName = parsedBody.home_team.full_name.replace(/\s/g, '').toUpperCase();
-					var feedAwayTeamName = parsedBody.away_team.full_name.replace(/\s/g, '').toUpperCase();
+					var feedHomeTeamName = commons.convertPrimaryTeamIdToFeedName(theScoreKeyURL, parsedBody.home_team.name);
+					var feedAwayTeamName = commons.convertPrimaryTeamIdToFeedName(theScoreKeyURL, parsedBody.away_team.name);
 				}
 				
 				if (feedHomeTeamName === feedName.split("_")[0] && feedAwayTeamName == feedName.split("_")[1] 
@@ -146,7 +139,6 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 		} else {
 			notifications.notifyAdmin("Wrong JSON format from thescore.com for " + championship, JSON.stringify(parsedBody));
 			return callbacks.ifError();
-
 		}
 
 
