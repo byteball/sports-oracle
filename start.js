@@ -434,7 +434,7 @@ eventBus.on('text', function(from_address, text) {
 * if JSON calendar requested - being deprecated use 'object'-'get_calendar' event instead
 */	
 	if (text == "/JSON") {
-		return device.sendMessageToDevice(from_address, 'text', calendar.getPublicCalendar());
+		return device.sendMessageToDevice(from_address, 'text', JSON.stringify(calendar.getPublicCalendar()));
 	}
 
 /*
