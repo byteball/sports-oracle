@@ -193,7 +193,9 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 			}
 
 
-			var arrFixtures = arrRawFixtures.map(fixture => {
+			var arrFixtures = arrRawFixtures.filter(fixture =>{
+				return fixture.scheduleStatus != "Delayed";
+			}).map(fixture => {
 				return encodeFixture(championship, fixture);
 			});
 			calendar.setReloadingFlag(championship, true);

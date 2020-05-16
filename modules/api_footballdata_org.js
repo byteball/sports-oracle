@@ -118,8 +118,9 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 					}
 				}
 
-
-				var arrFixtures = arrRawFixtures.map(fixture => {
+				var arrFixtures = arrRawFixtures.filter(fixture =>{
+					return fixture.status != "POSTPONED" && fixture.status != "CANCELLED";
+				}).map(fixture => {
 					return encodeFixture(fixture);
 				});
 				calendar.setReloadingFlag(championship, true);
