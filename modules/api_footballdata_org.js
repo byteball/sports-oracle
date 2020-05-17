@@ -33,7 +33,7 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 
 		if (match.status == "FINISHED") {
 			if (match.score && match.score.fullTime.homeTeam != null) {
-					let fixture = encodeFixture(match);
+					let fixture = encodeFixture(championship, match);
 					if (!fixture)
 						return handle("Couldn't encode fixture");
 					if (fixture.feedName === expectedFeedName){
@@ -66,7 +66,7 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 	
 	calendar.addResultHelper(category, championship, resultHelper);
 	
-	function encodeFixture(fixture) {
+	function encodeFixture(championship, fixture) {
 		let feedHomeTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.homeTeam.id);
 		let feedAwayTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.awayTeam.id);
 		if (!feedHomeTeamName ||!feedAwayTeamName)
@@ -80,7 +80,7 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 			awayTeam: abbreviations['soccer'][fixture.awayTeam.id].name,
 			feedHomeTeamName: feedHomeTeamName,
 			feedAwayTeamName: feedAwayTeamName,
-			feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + localDay.format("YYYY-MM-DD"),
+			feedName: championship + '_' + feedHomeTeamName + '_' + feedAwayTeamName + '_' + localDay.format("YYYY-MM-DD"),
 			urlResult: "https://api.football-data.org/v2/matches/"+ fixture.id,
 			date: moment.utc(fixture.utcDate),
 			localDay: localDay
@@ -121,7 +121,7 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 				var arrFixtures = arrRawFixtures.filter(fixture =>{
 					return fixture.status != "POSTPONED" && fixture.status != "CANCELLED";
 				}).map(fixture => {
-					return encodeFixture(fixture);
+					return encodeFixture(championship, fixture);
 				});
 				calendar.setReloadingFlag(championship, true);
 				calendar.deleteAllFixturesFromChampionship(championship);

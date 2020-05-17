@@ -153,7 +153,7 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 			awayTeam: awayTeamName,
 			feedHomeTeamName: feedHomeTeamName,
 			feedAwayTeamName: feedAwayTeamName,
-			feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
+			feedName: championship.toUpperCase() + '_' + feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
 			urlResult: url + "game_boxscore.json?gameid=" + fixture.id,
 			date: convertMySportsFeedsTimeToMomentUTC(fixture.date, fixture.time).utc(),
 			localDay: moment.utc(fixture.date)

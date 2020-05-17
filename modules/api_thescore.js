@@ -14,10 +14,10 @@ function canCheckChampionship(championship){
 }
 
 
-function checkResult(championship, feedName, UTCdate, result, callbacks) {
+function checkResult(championship, feedNameToCheck, UTCdate, result, callbacks) {
 	function findAndCheckFixture(arrayEventIds) {
 		if (arrayEventIds.length == 0) {
-			notifications.notifyAdmin("arrayEventIds empty when checking " + feedName, ' ');
+			notifications.notifyAdmin("arrayEventIds empty when checking " + feedNameToCheck, ' ');
 			return callbacks.ifCriticalError();
 		}
 		request({
@@ -40,7 +40,7 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 						var feedHomeTeamName = soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name];
 						var feedAwayTeamName = soccerTeamsCorrespondence[championship][parsedBody.away_team.full_name];
 					} else {
-						notifications.notifyAdmin("Couldn't find a correspondence for " + feedName + " from thescore", ' ');
+						notifications.notifyAdmin("Couldn't find a correspondence for " + feedNameToCheck + " from thescore", ' ');
 						return next();
 					}
 				} else {
@@ -48,11 +48,11 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 					var feedAwayTeamName = commons.convertPrimaryTeamIdToFeedName(theScoreKeyURL, parsedBody.away_team.name);
 				}
 				
-				if (feedHomeTeamName === feedName.split("_")[0] && feedAwayTeamName == feedName.split("_")[1] 
+				if (feedHomeTeamName === feedNameToCheck.split("_")[1] && feedAwayTeamName == feedNameToCheck.split("_")[2] 
 					&& moment(parsedBody.game_date).isSameOrAfter(UTCdate.subtract(1, 'hours')) && moment(parsedBody.game_date).isSameOrBefore(UTCdate.add(3, 'hours'))) {
 
 					if (parsedBody.status == "postponed") {
-						notifications.notifyAdmin(feedName + " has been postponed", ' ');
+						notifications.notifyAdmin(feedNameToCheck + " has been postponed", ' ');
 						return callbacks.ifPostponed();
 					}
 					
@@ -77,7 +77,7 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 				if (arrayEventIds.length > 1) {
 					return findAndCheckFixture(arrayEventIds.splice(1));
 				} else {
-					notifications.notifyAdmin("Couldn't check " + feedName + " from thescore", ' ');
+					notifications.notifyAdmin("Couldn't check " + feedNameToCheck + " from thescore", ' ');
 					return callbacks.ifCriticalError();
 				}
 			}
@@ -103,7 +103,7 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 			var parsedBody = JSON.parse(body);
 
 		} catch (e) {
-			notifications.notifyAdmin("Result for " + feedName + " can't be parsed from thescore.com" + "\n" + body);
+			notifications.notifyAdmin("Result for " + feedNameToCheck + " can't be parsed from thescore.com" + "\n" + body);
 			return callbacks.ifCriticalError();
 		}
 
@@ -115,7 +115,7 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 				if (championship == 'NFL') {
 
 					if (moment(dayOrWeek.start_date).isSameOrBefore(UTCdate) && moment(dayOrWeek.end_date).isSameOrAfter(UTCdate)) {
-						findAndCheckFixture(dayOrWeek.event_ids, feedName);
+						findAndCheckFixture(dayOrWeek.event_ids, feedNameToCheck);
 						dayOrWeekFound = true;
 					}
 
@@ -123,7 +123,7 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 				} else {
 
 					if (dayOrWeek.id === UTCdate.format("YYYY-MM-DD")) {
-						findAndCheckFixture(dayOrWeek.event_ids, feedName);
+						findAndCheckFixture(dayOrWeek.event_ids, feedNameToCheck);
 						dayOrWeekFound = true;
 					}
 				}
@@ -131,7 +131,7 @@ function checkResult(championship, feedName, UTCdate, result, callbacks) {
 			});
 
 			if (!dayOrWeekFound) {
-				notifications.notifyAdmin("Day not found for " + feedName, JSON.stringify(parsedBody));
+				notifications.notifyAdmin("Day not found for " + feedNameToCheck, JSON.stringify(parsedBody));
 				return callbacks.ifCriticalError();
 			}
 
