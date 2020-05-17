@@ -6,16 +6,10 @@ const calendar = require('./calendar.js');
 const conf = require('ocore/conf.js');
 const commons = require('./commons.js');
 const notifications = require('./notifications.js');
-const fs = require('fs');
+const abbreviations = require('../config/abbreviations.json');
 
 var reloadInterval = 1000*3600*24;
 
-var assocShortNames = {}
-fs.readFile('./soccerShortNames.json', (err, content) => {
-	if (err)
-		throw Error("soccerShortNames.json" + err);
-	assocShortNames = JSON.parse(content);
-});
 
 function getFixturesAndPushIntoCalendar(category, championship, url) {
 
@@ -39,28 +33,30 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 
 		if (match.status == "FINISHED") {
 			if (match.score && match.score.fullTime.homeTeam != null) {
-					let fixture = encodeFixture(match);
-						if (fixture.feedName === expectedFeedName){
-							if (Number(match.score.fullTime.awayTeam) > Number(match.score.fullTime.homeTeam)) {
-								fixture.winner = fixture.awayTeam;
-								fixture.winnerCode = fixture.feedAwayTeamName;
-							}
-							if (Number(match.score.fullTime.awayTeam) < Number(match.score.fullTime.homeTeam)) {
-								fixture.winner = fixture.homeTeam;
-								fixture.winnerCode = fixture.feedHomeTeamName;
-							}
-							if (Number(match.score.fullTime.awayTeam) == Number(match.score.fullTime.homeTeam)) {
-								fixture.winner = 'draw';
-								fixture.winnerCode = 'draw';
-							}
-							handle(null, fixture);
-							
-							} else {
-								handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);	
-							}
-					} else {
-						handle('No result in response');
-					}
+					let fixture = encodeFixture(championship, match);
+					if (!fixture)
+						return handle("Couldn't encode fixture");
+					if (fixture.feedName === expectedFeedName){
+						if (Number(match.score.fullTime.awayTeam) > Number(match.score.fullTime.homeTeam)) {
+							fixture.winner = fixture.awayTeam;
+							fixture.winnerCode = fixture.feedAwayTeamName;
+						}
+						if (Number(match.score.fullTime.awayTeam) < Number(match.score.fullTime.homeTeam)) {
+							fixture.winner = fixture.homeTeam;
+							fixture.winnerCode = fixture.feedHomeTeamName;
+						}
+						if (Number(match.score.fullTime.awayTeam) == Number(match.score.fullTime.homeTeam)) {
+							fixture.winner = 'draw';
+							fixture.winnerCode = 'draw';
+						}
+						handle(null, fixture);
+						
+						} else {
+							handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);	
+						}
+				} else {
+					handle('No result in response');
+				}
 				
 		} else {
 			handle('Fixture is not finished');
@@ -70,28 +66,24 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 	
 	calendar.addResultHelper(category, championship, resultHelper);
 	
-	function encodeFixture(fixture) {
-		if (fixture.homeTeam && fixture.homeTeam.id && assocShortNames[fixture.homeTeam.id] && fixture.awayTeam.id && assocShortNames[fixture.awayTeam.id]){
-			let homeTeamName = commons.removeAbbreviations(assocShortNames[fixture.homeTeam.id]).replace(/[()']/g, '');
-			let awayTeamName = commons.removeAbbreviations(assocShortNames[fixture.awayTeam.id]).replace(/[()']/g, '');
-			let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
-			let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
-			let localDay = moment.utc(fixture.utcDate);
-			if (fixture.season.id == 2013){ //for bresil championship we convert UTC time to local time approximately
-				localDay.subtract(4, 'hours');
-			}
-			return {
-				homeTeam: homeTeamName,
-				awayTeam: awayTeamName,
-				feedHomeTeamName: feedHomeTeamName,
-				feedAwayTeamName: feedAwayTeamName,
-				feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + localDay.format("YYYY-MM-DD"),
-				urlResult: "https://api.football-data.org/v2/matches/"+ fixture.id,
-				date: moment.utc(fixture.utcDate),
-				localDay: localDay
-			}
-		} else {
+	function encodeFixture(championship, fixture) {
+		let feedHomeTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.homeTeam.id);
+		let feedAwayTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.awayTeam.id);
+		if (!feedHomeTeamName ||!feedAwayTeamName)
 			return null;
+		let localDay = moment.utc(fixture.utcDate);
+		if (fixture.season.id == 2013){ //for bresil championship we convert UTC time to local time approximately
+			localDay.subtract(4, 'hours');
+		}
+		return {
+			homeTeam: abbreviations['soccer'][fixture.homeTeam.id].name,
+			awayTeam: abbreviations['soccer'][fixture.awayTeam.id].name,
+			feedHomeTeamName: feedHomeTeamName,
+			feedAwayTeamName: feedAwayTeamName,
+			feedName: championship + '_' + feedHomeTeamName + '_' + feedAwayTeamName + '_' + localDay.format("YYYY-MM-DD"),
+			urlResult: "https://api.football-data.org/v2/matches/"+ fixture.id,
+			date: moment.utc(fixture.utcDate),
+			localDay: localDay
 		}
 	}
 
@@ -126,9 +118,10 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 					}
 				}
 
-
-				var arrFixtures = arrRawFixtures.map(fixture => {
-					return encodeFixture(fixture);
+				var arrFixtures = arrRawFixtures.filter(fixture =>{
+					return fixture.status != "POSTPONED" && fixture.status != "CANCELLED";
+				}).map(fixture => {
+					return encodeFixture(championship, fixture);
 				});
 				calendar.setReloadingFlag(championship, true);
 				calendar.deleteAllFixturesFromChampionship(championship);

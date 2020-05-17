@@ -6,6 +6,7 @@ const btoa = require('btoa');
 const conf = require('ocore/conf.js');
 const calendar = require('./calendar.js');
 const notifications = require('./notifications.js');
+const commons = require('./commons.js');
 
 var reloadInterval = 1000*3600*24;
 
@@ -30,7 +31,9 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 				handle('The fixture may not had enough time to finish');
 			} else {
 				if (response.gameboxscore.inningSummary.inningTotals) {
-					let fixture = encodeFixture(response.gameboxscore.game);
+					let fixture = encodeFixture('mlb', response.gameboxscore.game);
+					if (!fixture)
+						return handle("Couldn't encode fixture");
 					if (fixture.feedName === expectedFeedName.replace('_G1','').replace('_G2','')){
 						if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) > Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
 							fixture.winner = fixture.awayTeam;
@@ -56,6 +59,8 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 	}
 
 	if (url.indexOf('nba') > -1 || url.indexOf('nfl') > -1) {
+
+		var league = url.indexOf('nba') > -1 ? 'nba' : 'nfl';
 		resultHelper.hoursToWaitBeforeGetResult = 6;
 		resultHelper.rules = "The oracle will post the name of winning team. If the match is interrupted, the team with the higher score at time of interruption will be posted. If the match is rescheduled to another day, no result will be posted.";
 		resultHelper.process = function(response, expectedFeedName, handle) {
@@ -63,7 +68,9 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 				handle('The fixture may not had enough time to finish');
 			} else {
 				if (response.gameboxscore.quarterSummary.quarterTotals) {
-					let fixture = encodeFixture(response.gameboxscore.game);
+					let fixture = encodeFixture(league, response.gameboxscore.game);
+					if (!fixture)
+						return handle("Couldn't encode fixture");
 					if (fixture.feedName === expectedFeedName){
 						if (Number(response.gameboxscore.quarterSummary.quarterTotals.awayScore) > Number(response.gameboxscore.quarterSummary.quarterTotals.homeScore)) {
 							fixture.winner = fixture.awayTeam;
@@ -96,7 +103,9 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 				handle('The fixture may not had enough time to finish');
 			} else {
 				if (response.gameboxscore.periodSummary.periodTotals) {
-					let fixture = encodeFixture(response.gameboxscore.game);
+					let fixture = encodeFixture('nhl', response.gameboxscore.game);
+					if (!fixture)
+						return handle("Couldn't encode fixture");
 					if (fixture.feedName === expectedFeedName){
 						if (Number(response.gameboxscore.periodSummary.periodTotals.awayScore) > Number(response.gameboxscore.periodSummary.periodTotals.homeScore)) {
 							fixture.winner = fixture.awayTeam;
@@ -134,17 +143,17 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 		return UtcDate;
 	}
 
-	function encodeFixture(fixture) {
+	function encodeFixture(championship, fixture) {
 		let homeTeamName = fixture.homeTeam.City + " " + fixture.homeTeam.Name;
 		let awayTeamName = fixture.awayTeam.City + " " + fixture.awayTeam.Name;
-		let feedHomeTeamName = homeTeamName.replace(/\s/g, '').toUpperCase();
-		let feedAwayTeamName = awayTeamName.replace(/\s/g, '').toUpperCase();
+		let feedHomeTeamName = commons.convertPrimaryTeamIdToFeedName(championship, fixture.homeTeam.Name);
+		let feedAwayTeamName = commons.convertPrimaryTeamIdToFeedName(championship, fixture.awayTeam.Name);
 		return {
 			homeTeam: homeTeamName,
 			awayTeam: awayTeamName,
 			feedHomeTeamName: feedHomeTeamName,
 			feedAwayTeamName: feedAwayTeamName,
-			feedName: feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
+			feedName: championship.toUpperCase() + '_' + feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
 			urlResult: url + "game_boxscore.json?gameid=" + fixture.id,
 			date: convertMySportsFeedsTimeToMomentUTC(fixture.date, fixture.time).utc(),
 			localDay: moment.utc(fixture.date)
@@ -168,7 +177,7 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 				var parsedBody = JSON.parse(body);
 			} catch (e) {
 				if (firstCalendarLoading) {
-					throw Error("Couldn't parse  footballDataOrg, error: " + e);
+					throw Error("Couldn't parse mysportsfeed, error: " + e);
 				} else {
 					return notifications.notifyAdmin("I couldn't parse " + championship + "calendar today", "");
 				}
@@ -177,16 +186,17 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 
 			if (arrRawFixtures.length == 0) {
 				if (firstCalendarLoading) {
-					throw Error("fixtures array empty, couldn't get fixtures from footballDataOrg");
+					throw Error("fixtures array empty, couldn't get fixtures from mysportsfeed");
 				} else {
 					return notifications.notifyAdmin("I couldn't get fixtures for " + championship + " today", "");
 				}
 			}
 
 
-			var arrFixtures = arrRawFixtures.map(fixture => {
-				return encodeFixture(fixture);
-
+			var arrFixtures = arrRawFixtures.filter(fixture =>{
+				return fixture.scheduleStatus != "Delayed";
+			}).map(fixture => {
+				return encodeFixture(championship, fixture);
 			});
 			calendar.setReloadingFlag(championship, true);
 			calendar.deleteAllFixturesFromChampionship(championship);

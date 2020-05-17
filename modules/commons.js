@@ -2,12 +2,21 @@
 "use strict";
 const db = require('ocore/db.js');
 const async = require('async');
+const abbreviations = require('../config/abbreviations.json');
 
 function getTxtCommandButton(label, command) {
 	var text = "";
 	var _command = command ? command : label;
 	text += "[" + label + "]" + "(command:" + _command + ")";
 	return text;
+}
+
+
+function convertPrimaryTeamIdToFeedName(sportOrLeague, teamId){
+	if (!abbreviations[sportOrLeague]|| !abbreviations[sportOrLeague][teamId])
+		return null;
+	else
+		return abbreviations[sportOrLeague][teamId].abbreviation;
 }
 
 
@@ -84,3 +93,4 @@ exports.removeAccents = removeAccents;
 exports.deleteDevicesHavingRequestedFixturesFromDB = deleteDevicesHavingRequestedFixturesFromDB;
 exports.deleteAaHavingRequestedFixturesFromDB = deleteAaHavingRequestedFixturesFromDB;
 exports.deleteAllRequestedFixtures = deleteAllRequestedFixtures;
+exports.convertPrimaryTeamIdToFeedName = convertPrimaryTeamIdToFeedName;
