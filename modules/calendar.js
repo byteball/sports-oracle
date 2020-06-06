@@ -185,6 +185,7 @@ function getPublicCalendar() {
 		for (var championship in publicCalendar[cat]) { //we delete unneeded attributes
 			delete publicCalendar[cat][championship].resultHelper;
 			for (var feedName in publicCalendar[cat][championship].fixtures) {
+				publicCalendar[cat][championship].fixtures[feedName].localDay = publicCalendar[cat][championship].fixtures[feedName].localDay.slice(0,10);
 				delete publicCalendar[cat][championship].fixtures[feedName].urlResult;
 				delete publicCalendar[cat][championship].fixtures[feedName].feedName;
 			}
