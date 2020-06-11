@@ -17,7 +17,7 @@ const mySportFeed = require('./modules/api_mysportfeed.js');
 const footballDataOrg = require('./modules/api_footballdata_org.js');
 const theScore = require('./modules/api_thescore.js');
 const validationUtils = require('ocore/validation_utils.js');
-
+require('./modules/aa_watcher.js');
 
 var assocPeers = [];
 
@@ -26,7 +26,7 @@ setTimeout(loadChampionships,500);
 function loadChampionships(){
 	//------The different feeds are added to the calendar
 	//------The 2 first arguments specify category and keyword
-	//mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2020-regular/');
+	mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2020-regular/');
 	//mySportFeed.getFixturesAndPushIntoCalendar('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2020-playoff/');
 	//mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2019-regular/');
 	//mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2019-regular/');
@@ -382,7 +382,6 @@ function findFixturesToCheckAndGetResult() {
 									postResultToAas(row.feed_name, existing_value);
 						});
 					} else {
-						notifications.notifyAdmin("Championship " + row.feed_name + " not in calendar anymore, can't get result", "");
 						commons.deleteAllRequestedFixtures(row.feed_name);
 					}
 				}
@@ -564,6 +563,6 @@ eventBus.on('headless_wallet_ready', function() {
 	}
 
 	setTimeout(findFixturesToCheckAndGetResult, 1000 * 10); //wait that the calendar is intitialized
-	setInterval(findFixturesToCheckAndGetResult, 1000 * 3600);
+	setInterval(findFixturesToCheckAndGetResult, 1000 * 900);
 
 });
