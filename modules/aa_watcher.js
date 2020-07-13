@@ -40,7 +40,7 @@ function checkAndAddRequestedFixture(params){
 		if (!resultHelper || !championship)
 			return console.log("no helper or championship");
 
-		if (fixture.date.isBefore(moment().subtract(resultHelper.hoursToWaitBeforeGetResult, 'hours'))) {
+		if (moment().add(resultHelper.hoursToWaitBeforeGetResult, 'hours').isBefore(fixture.date)) {
 			datafeeds.readExisting(feedName, function(exists) {
 				if (!exists)
 					db.query("INSERT OR IGNORE INTO requested_fixtures (feed_name, fixture_date, result_url, hours_to_wait) VALUES (?,?,?,?) ",[feedName, fixture.date.format("YYYY-MM-DD HH:mm:ss"),fixture.urlResult,resultHelper.hoursToWaitBeforeGetResult]);
