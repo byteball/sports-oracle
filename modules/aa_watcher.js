@@ -8,10 +8,10 @@ const moment = require('moment');
 
 var my_address;
 
+// when a new sports betting AA is defined, the result for the concerned fixture is to be posted
 eventBus.on('aa_definition_saved', function (payload) {
 
 	var base_aa = payload.definition[1].base_aa;
-	console.log("base_aa " + base_aa);
 	if (!base_aa || base_aa != conf.issuer_base_aa)
 		return;
 	checkAndAddRequestedFixture(payload.definition[1].params);

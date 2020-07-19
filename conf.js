@@ -28,6 +28,6 @@ exports.footballDataApiKey = '';
 exports.KEYS_FILENAME = 'keys.json';
 
 exports.expectedPaymentFromAa = 10000;
-exports.issuer_base_aa = "UPGVQBNM6YOZS5OG7QFB2O2P4UF3LQNR";
+exports.issuer_base_aa = "DYCDBVYRODPCPEH4XMWE33HYAX7WOZ3W";// asset issuer for sports betting
 
 console.log('finished sports oracle conf');
