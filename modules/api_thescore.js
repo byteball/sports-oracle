@@ -44,8 +44,8 @@ function checkResult(championship, feedNameToCheck, UTCdate, result, callbacks) 
 						return next();
 					}
 				} else {
-					var feedHomeTeamName = commons.convertPrimaryTeamIdToFeedName(theScoreKeyURL, parsedBody.home_team.name);
-					var feedAwayTeamName = commons.convertPrimaryTeamIdToFeedName(theScoreKeyURL, parsedBody.away_team.name);
+					var feedHomeTeamName = parsedBody.home_team.abbreviation; // for american sports, thescore uses same abbreviations as ours  
+					var feedAwayTeamName = parsedBody.away_team.abbreviation;
 				}
 				
 				if (feedHomeTeamName === feedNameToCheck.split("_")[1] && feedAwayTeamName == feedNameToCheck.split("_")[2] 

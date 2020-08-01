@@ -31,7 +31,7 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 				handle('The fixture may not had enough time to finish');
 			} else {
 				if (response.gameboxscore.inningSummary.inningTotals) {
-					let fixture = encodeFixture('mlb', response.gameboxscore.game);
+					let fixture = encodeFixture('MLB', response.gameboxscore.game);
 					if (!fixture)
 						return handle("Couldn't encode fixture");
 					if (fixture.feedName === expectedFeedName.replace('_G1','').replace('_G2','')){
@@ -60,7 +60,7 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 
 	if (url.indexOf('nba') > -1 || url.indexOf('nfl') > -1) {
 
-		var league = url.indexOf('nba') > -1 ? 'nba' : 'nfl';
+		var league = url.indexOf('nba') > -1 ? 'NBA' : 'NFL';
 		resultHelper.hoursToWaitBeforeGetResult = 6;
 		resultHelper.rules = "The oracle will post the name of winning team. If the match is interrupted, the team with the higher score at time of interruption will be posted. If the match is rescheduled to another day, no result will be posted.";
 		resultHelper.process = function(response, expectedFeedName, handle) {
@@ -103,7 +103,7 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 				handle('The fixture may not had enough time to finish');
 			} else {
 				if (response.gameboxscore.periodSummary.periodTotals) {
-					let fixture = encodeFixture('nhl', response.gameboxscore.game);
+					let fixture = encodeFixture('NHL', response.gameboxscore.game);
 					if (!fixture)
 						return handle("Couldn't encode fixture");
 					if (fixture.feedName === expectedFeedName){
