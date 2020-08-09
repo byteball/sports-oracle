@@ -49,17 +49,21 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 							fixture.winner = 'draw';
 							fixture.winnerCode = 'draw';
 						}
-						handle(null, fixture);
+						return handle(null, fixture);
 						
 						} else {
-							handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);	
+							return handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);	
 						}
 				} else {
-					handle('No result in response');
+					return handle('No result in response');
 				}
 				
+		} else if (match.status == "POSTPONED" || match.status == "CANCELLED" ||  match.status == "CANCELED"){
+			fixture.winner = 'canceled';
+			fixture.winnerCode = 'canceled';
+			return handle(null, fixture);
 		} else {
-			handle('Fixture is not finished');
+			return handle('Fixture is not finished');
 		}
 		
 	};
@@ -119,7 +123,7 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 				}
 
 				var arrFixtures = arrRawFixtures.filter(fixture =>{
-					return fixture.status != "POSTPONED" && fixture.status != "CANCELLED";
+					return fixture.status != "POSTPONED" && fixture.status != "CANCELLED" && fixture.status != "CANCELED";
 				}).map(fixture => {
 					return encodeFixture(championship, fixture);
 				});

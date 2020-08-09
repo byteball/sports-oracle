@@ -97,12 +97,10 @@ function getFixtureFromFeedName(feedName) {
 }
 
 function getResultHelperFromFeedName(feedName) {
+	const championship = feedName.split('_')[0];
 	for (var cat in calendar) {
-		for (var champ in calendar[cat]) {
-			if (calendar[cat][champ].fixtures && calendar[cat][champ].fixtures[feedName])
-				return calendar[cat][champ].resultHelper;
-		}
-
+		if (calendar[cat][championship])
+			return calendar[cat][championship].resultHelper;
 	}
 	return null;
 }
@@ -143,13 +141,7 @@ function getCategoryFromFeedName(feedName) {
 }
 
 function getChampionshipFromFeedName(feedName) {
-	for (var cat in calendar) {
-		for (var champ in calendar[cat]) {
-			if (calendar[cat][champ].fixtures && calendar[cat][champ].fixtures[feedName])
-				return champ;
-		}
-	}
-	return null;
+	return feedName.split('_')[0];
 }
 
 

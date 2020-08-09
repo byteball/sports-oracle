@@ -26,8 +26,8 @@ setTimeout(loadChampionships,500);
 function loadChampionships(){
 	//------The different feeds are added to the calendar
 	//------The 2 first arguments specify category and keyword
-	//mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2020-regular/');
-	//mySportFeed.getFixturesAndPushIntoCalendar('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2020-playoff/');
+	mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2020-regular/');
+	mySportFeed.getFixturesAndPushIntoCalendar('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2020-regular/');
 	mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2019-regular/');
 	//mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2019-regular/');
 
@@ -137,8 +137,7 @@ function searchFixtures(championship, searchedString) {
 }
 
 
-function retrieveAndPostResultToDag(url, championship, feedName, resultHelper, handle) {
-
+function retrieveAndPostResultToDag(fixture_date, url, championship, feedName, resultHelper, handle) {
 	if (!resultHelper || !championship)
 		return handle("Internal error, please retry later");
 	
@@ -150,10 +149,34 @@ function retrieveAndPostResultToDag(url, championship, feedName, resultHelper, h
 		url: url,
 		headers: resultHelper.headers
 	}, function(error, response, body) {
-		if (error || response.statusCode !== 200) {
+		if (error || (response.statusCode !== 200 && response.statusCode !== 204)) {
 			handle("Error, can't get info from data provider. Please try later.");
 			return;
 		}
+
+		if (response.statusCode == 204) { // the score API will return an error 204 if a match hasn't been played yet, we check with second source that it has actually been canceled
+			return checkUsingSecondSource(championship, feedName, fixture_date, 'canceled', {
+				ifCriticalError: () => {
+					setHasCriticalError();
+					return handle("I couldn't check the result with a second source of data, admin is notified.");
+				},
+				ifError: () => {
+					return handle("I couldn't check the result with a second source of data, please try later");
+				},
+				ifFailedCheck: () => {
+					return handle("Inconsistency found for result, admin is notified.");
+				},
+				ifOK: () => {
+					var datafeed = {};
+					datafeed[feedName] = 'canceled';
+					datafeeds.reliablyPost(datafeed);
+					return handle(feedName + "=canceled \n\nThe data will be added into the database, I'll let you know when it is confirmed and the contract can be unlocked."
+					+ "\nYou can also request to "+ commons.getTxtCommandButton('trigger an autonomous agent',feedName + " trigger" )+" with this result.", 'canceled');
+				}
+			});
+		}
+
+
 		try {
 			var parsedBody = JSON.parse(body);
 
@@ -170,10 +193,6 @@ function retrieveAndPostResultToDag(url, championship, feedName, resultHelper, h
 			}
 
 			checkUsingSecondSource(championship, feedName, result.date, result.winnerCode, {
-				ifPostponed: () => {
-					commons.deleteAllRequestedFixtures(feedName);
-					return handle("This result has been postponed.");
-				},
 				ifCriticalError: () => {
 					setHasCriticalError();
 					return handle("I couldn't check the result with a second source of data, admin is notified.");
@@ -230,7 +249,7 @@ function treatRequestForAaPosting(from_address, feedName, aa_address, handle){
 				insertIntoRequestedFixturesForAa();
 				var device = require('ocore/device.js');
 				device.sendMessageToDevice(from_address, 'text', "Result is being retrieved, please wait.");
-				retrieveAndPostResultToDag(fixture.urlResult, championship, feedName, resultHelper, function(txt, value) {
+				retrieveAndPostResultToDag(fixture.date, fixture.urlResult, championship, feedName, resultHelper, function(txt, value) {
 					if (value)
 						datafeeds.postDatafeedToAa(feedName, value, aa_address,  getDatafeedPostingToAaCallbacks([from_address], aa_address, feedName, value));
 					handle();
@@ -279,7 +298,7 @@ function treatRequestForDagPosting(from_address, feedName, handle) {
 				insertIntoRequestedFixtures();
 				var device = require('ocore/device.js');
 				device.sendMessageToDevice(from_address, 'text', "Result is being retrieved, please wait.");
-				retrieveAndPostResultToDag(fixture.urlResult, championship, feedName, resultHelper, function(txt) {
+				retrieveAndPostResultToDag(fixture.date, fixture.urlResult, championship, feedName, resultHelper, function(txt) {
 					handle(txt);
 				});
 			}
@@ -325,15 +344,17 @@ function getDatafeedPostingToAaCallbacks(device_addresses, aa_address, feedName,
 	}
 }
 
-function postResultToAas(feedName, value){
+function postResultToAas(feedName, value, callbacks){
 
 	db.query("SELECT DISTINCT feed_name, aa_address FROM aas_having_requested_fixture WHERE feed_name=?", [feedName], function(rows){
+		if (rows.length == 0)
+			return callbacks.noAaRequestLeft();
 		rows.forEach(function(row){
 			db.query("SELECT DISTINCT device_address FROM aas_having_requested_fixture WHERE feed_name=? AND aa_address=?", [feedName, row.aa_address], function(device_addresses){
 				datafeeds.postDatafeedToAa(feedName, value, row.aa_address,  getDatafeedPostingToAaCallbacks(device_addresses.map(function(address){return address.device_address}), row.aa_address, feedName,value));
 			});
-	
 		})
+		return callbacks.processingAaRequests();
 	});
 }
 
@@ -361,7 +382,7 @@ function notifyForDatafeedPosted(feedName, value) {
 function findFixturesToCheckAndGetResult() {
 
 	db.query(
-		"SELECT feed_name,result_url,(strftime('%s','now') - strftime('%s',fixture_date) - hours_to_wait * 3600) AS time_from_first_check FROM requested_fixtures \n\
+		"SELECT fixture_date,feed_name,result_url,(strftime('%s','now') - strftime('%s',fixture_date) - hours_to_wait * 3600) AS time_from_first_check FROM requested_fixtures \n\
 		WHERE (fixture_date < datetime('now', '-' || hours_to_wait ||' hours') AND has_critical_error=0) \n\
 		OR \n\
 		(time_from_first_check/3600.0*12.0 LIKE '%.0%' AND has_critical_error=1)", //try to recheck every 12 hours fixtures having critical errors
@@ -370,20 +391,20 @@ function findFixturesToCheckAndGetResult() {
 				function(row) {
 					if (calendar.isThereChampionshipReloading())
 						return;
-					if (calendar.getFixtureFromFeedName(row.feed_name)) {
-						datafeeds.readExisting(row.feed_name, function(exists, is_stable, existing_value) {
-							if(!exists)
-								retrieveAndPostResultToDag(row.result_url, calendar.getChampionshipFromFeedName(row.feed_name), row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function(text, retrieved_value) {
-									if (retrieved_value){
-										postResultToAas(row.feed_name, retrieved_value);
-									}
-								});
-								if (existing_value)
-									postResultToAas(row.feed_name, existing_value);
-						});
-					} else {
-						commons.deleteAllRequestedFixtures(row.feed_name);
+					const postToAaCallbacks = {
+						noAaRequestLeft: function(){commons.deleteRequestedFixture(row.feed_name)},
+						processingAaRequests: function(){}
 					}
+					datafeeds.readExisting(row.feed_name, function(exists, is_stable, existing_value) {
+						if(!exists)
+							retrieveAndPostResultToDag(moment.utc(row.fixture_date) ,row.result_url, calendar.getChampionshipFromFeedName(row.feed_name), row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function(text, retrieved_value) {
+								if (retrieved_value){
+									postResultToAas(row.feed_name, retrieved_value, postToAaCallbacks);
+								}
+							});
+						if (existing_value)
+							postResultToAas(row.feed_name, existing_value, postToAaCallbacks);
+					});
 				}
 			)
 

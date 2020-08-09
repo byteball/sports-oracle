@@ -3,7 +3,6 @@
 const moment = require('moment');
 const request = require('request');
 const notifications = require('./notifications.js');
-const commons = require('./commons.js');
 
 var soccerTeamsCorrespondence = require("../config/theScoreSoccerTeamsCorrespondence.json");
 
@@ -49,11 +48,11 @@ function checkResult(championship, feedNameToCheck, UTCdate, result, callbacks) 
 				}
 				
 				if (feedHomeTeamName === feedNameToCheck.split("_")[1] && feedAwayTeamName == feedNameToCheck.split("_")[2] 
-					&& moment(parsedBody.game_date).isSameOrAfter(UTCdate.subtract(1, 'hours')) && moment(parsedBody.game_date).isSameOrBefore(UTCdate.add(3, 'hours'))) {
+					&& moment(parsedBody.game_date).isSameOrAfter(UTCdate.subtract(1, 'hours')) 
+					&& moment(parsedBody.game_date).isSameOrBefore(UTCdate.add(3, 'hours'))) {
 
-					if (parsedBody.status == "postponed") {
-						notifications.notifyAdmin(feedNameToCheck + " has been postponed", ' ');
-						return callbacks.ifPostponed();
+					if (parsedBody.status != "final" && result == "canceled") {
+						return callbacks.ifOK();
 					}
 					
 					if (parsedBody.box_score.score.home.score > parsedBody.box_score.score.away.score && result == feedHomeTeamName) {
