@@ -71,7 +71,7 @@ function deleteAaHavingRequestedFixturesFromDB(feedName, aa_address){
 }
 
 
-function deleteAllRequestedFixtures(feedName){
+function deleteRequestedFixture(feedName){
 
 	db.takeConnectionFromPool(function(conn) {
 		var arrQueries = [];
@@ -92,5 +92,5 @@ exports.removeAbbreviations = removeAbbreviations;
 exports.removeAccents = removeAccents;
 exports.deleteDevicesHavingRequestedFixturesFromDB = deleteDevicesHavingRequestedFixturesFromDB;
 exports.deleteAaHavingRequestedFixturesFromDB = deleteAaHavingRequestedFixturesFromDB;
-exports.deleteAllRequestedFixtures = deleteAllRequestedFixtures;
+exports.deleteRequestedFixture = deleteRequestedFixture;
 exports.convertPrimaryTeamIdToFeedName = convertPrimaryTeamIdToFeedName;

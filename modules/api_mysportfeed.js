@@ -27,6 +27,7 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 		resultHelper.hoursToWaitBeforeGetResult = 6;
 		resultHelper.rules = "The oracle will post the name of winning team. If the match is interrupted, the team with the higher score at time of interruption will be posted. If the match is rescheduled to another day, no result will be posted.";
 		resultHelper.process = function(response, expectedFeedName, handle) {
+
 			if (convertMySportsFeedsTimeToMomentUTC(response.gameboxscore.game.date, response.gameboxscore.game.time).diff(moment(), 'hours', true) > -5) {
 				handle('The fixture may not had enough time to finish');
 			} else {
@@ -34,7 +35,7 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 					let fixture = encodeFixture('MLB', response.gameboxscore.game);
 					if (!fixture)
 						return handle("Couldn't encode fixture");
-					if (fixture.feedName === expectedFeedName.replace('_G1','').replace('_G2','')){
+					if (fixture.feedName === expectedFeedName){
 						if (Number(response.gameboxscore.inningSummary.inningTotals.awayScore) > Number(response.gameboxscore.inningSummary.inningTotals.homeScore)) {
 							fixture.winner = fixture.awayTeam;
 							fixture.winnerCode = fixture.feedAwayTeamName;
@@ -49,7 +50,10 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 						}
 						handle(null, fixture);
 					} else {
-						handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);
+						console.log('The feedname is not the expected one, feedname found: ' + fixture.feedName)
+						fixture.winner = 'canceled';
+						fixture.winnerCode = 'canceled';
+						handle(null, fixture);
 					}
 				} else {
 					handle('No inningTotals in response');
@@ -86,7 +90,10 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 						}
 					handle(null, fixture);
 					} else {
-						handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);
+						console.log('The feedname is not the expected one, feedname found: ' + fixture.feedName)
+						fixture.winner = 'canceled';
+						fixture.winnerCode = 'canceled';
+						handle(null, fixture);
 					}
 				} else {
 					handle('No quarterTotals in response');
@@ -121,7 +128,10 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 						}
 						handle(null, fixture);
 					} else {
-						handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);
+						console.log('The feedname is not the expected one, feedname found: ' + fixture.feedName)
+						fixture.winner = 'canceled';
+						fixture.winnerCode = 'canceled';
+						handle(null, fixture);
 					}
 				} else {
 					handle('No periodTotals in response');
@@ -156,7 +166,8 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 			feedName: championship.toUpperCase() + '_' + feedHomeTeamName + '_' + feedAwayTeamName + '_' + moment.utc(fixture.date).format("YYYY-MM-DD"),
 			urlResult: url + "game_boxscore.json?gameid=" + fixture.id,
 			date: convertMySportsFeedsTimeToMomentUTC(fixture.date, fixture.time).utc(),
-			localDay: moment.utc(fixture.date)
+			localDay: moment.utc(fixture.date),
+			hasOriginalDate: !!fixture.originalDate
 		}
 	}
 
@@ -203,21 +214,26 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 			arrFixtures.forEach(function(fixture) {
 				if (typeof fixture === 'object') {
 					if (fixture.date.diff(moment(),'days') > -15 && fixture.date.diff(moment(),'days') < 30){
-						
-						if (calendar.getFixtureFromFeedName(fixture.feedName)){	//if feedname already in calendar then it's a doubleheaders, we need to differentiate the fixture
-							var initialFeedName = fixture.feedName;
-							if (calendar.getFixtureFromFeedName(fixture.feedName).date.isBefore(fixture.date)){
-								calendar.addFixture(category,championship,initialFeedName + "_G1",calendar.getFixtureFromFeedName(initialFeedName));
-								calendar.addFixture(category,championship,initialFeedName + "_G2",fixture);
-							}else{
-								
-								calendar.addFixture(category,championship,initialFeedName + "_G1",fixture);
-								calendar.addFixture(category,championship,initialFeedName + "_G2",calendar.getFixtureFromFeedName(initialFeedName));
+						// if feedname already in calendar then it's a double header,
+						// we ignore both fixtures if it's a scheduled header
+						// we keep only original fixture if double header is due to a postponed fixture
+						if (calendar.getFixtureFromFeedName(fixture.feedName)){	
+							var initialFixture = calendar.getFixtureFromFeedName;
+							if (fixture.hasOriginalDate){
+								if (initialFixture.hasOriginalDate)
+									return calendar.deleteFixture(initialFixture.feedName);
+								else
+									return;
+							} else {
+								if (initialFixture.hasOriginalDate){
+									calendar.addFixture(category, championship, fixture.feedName, fixture)
+								} 
+								return calendar.deleteFixture(initialFixture.feedName);
 							}
-							calendar.deleteFixture(initialFeedName);
 						} else {
 							calendar.addFixture(category, championship, fixture.feedName, fixture)
 						}
+
 					}
 				}
 			});
