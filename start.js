@@ -28,11 +28,11 @@ function loadChampionships(){
 	//------The 2 first arguments specify category and keyword
 	mySportFeed.getFixturesAndPushIntoCalendar('Baseball', 'MLB', 'https://api.mysportsfeeds.com/v1.1/pull/mlb/2020-regular/');
 	mySportFeed.getFixturesAndPushIntoCalendar('American football', 'NFL', 'https://api.mysportsfeeds.com/v1.1/pull/nfl/2020-regular/');
-	mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2019-regular/');
+	mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2020-playoff/');
 	//mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2019-regular/');
 
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CL', 'https://api.football-data.org/v2/competitions/2001/matches');
-	//footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BL1', 'https://api.football-data.org/v2/competitions/2002/matches');
+//	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CL', 'https://api.football-data.org/v2/competitions/2001/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BL1', 'https://api.football-data.org/v2/competitions/2002/matches');
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','DED', 'https://api.football-data.org/v2/competitions/2003/matches');
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BSA', 'https://api.football-data.org/v2/competitions/2013/matches');
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','PD', 'https://api.football-data.org/v2/competitions/2014/matches');
@@ -385,7 +385,7 @@ function findFixturesToCheckAndGetResult() {
 		"SELECT fixture_date,feed_name,result_url,(strftime('%s','now') - strftime('%s',fixture_date) - hours_to_wait * 3600) AS time_from_first_check FROM requested_fixtures \n\
 		WHERE (fixture_date < datetime('now', '-' || hours_to_wait ||' hours') AND has_critical_error=0) \n\
 		OR \n\
-		(time_from_first_check/3600.0*12.0 LIKE '%.0%' AND has_critical_error=1)", //try to recheck every 12 hours fixtures having critical errors
+		(time_from_first_check/(3600.0*12.0) LIKE '%.0%' AND has_critical_error=1)", //try to recheck every 12 hours fixtures having critical errors
 		function(rows) {
 			rows.forEach(
 				function(row) {
@@ -397,7 +397,7 @@ function findFixturesToCheckAndGetResult() {
 					}
 					datafeeds.readExisting(row.feed_name, function(exists, is_stable, existing_value) {
 						if(!exists)
-							retrieveAndPostResultToDag(moment.utc(row.fixture_date) ,row.result_url, calendar.getChampionshipFromFeedName(row.feed_name), row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function(text, retrieved_value) {
+							retrieveAndPostResultToDag(moment.utc(row.fixture_date), row.result_url, calendar.getChampionshipFromFeedName(row.feed_name), row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function(text, retrieved_value) {
 								if (retrieved_value){
 									postResultToAas(row.feed_name, retrieved_value, postToAaCallbacks);
 								}
