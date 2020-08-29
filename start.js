@@ -385,7 +385,7 @@ function findFixturesToCheckAndGetResult() {
 		"SELECT fixture_date,feed_name,result_url,(strftime('%s','now') - strftime('%s',fixture_date) - hours_to_wait * 3600) AS time_from_first_check FROM requested_fixtures \n\
 		WHERE (fixture_date < datetime('now', '-' || hours_to_wait ||' hours') AND has_critical_error=0) \n\
 		OR \n\
-		(time_from_first_check/3600.0*12.0 LIKE '%.0%' AND has_critical_error=1)", //try to recheck every 12 hours fixtures having critical errors
+		(time_from_first_check/(3600.0*12.0) LIKE '%.0%' AND has_critical_error=1)", //try to recheck every 12 hours fixtures having critical errors
 		function(rows) {
 			rows.forEach(
 				function(row) {
@@ -397,7 +397,7 @@ function findFixturesToCheckAndGetResult() {
 					}
 					datafeeds.readExisting(row.feed_name, function(exists, is_stable, existing_value) {
 						if(!exists)
-							retrieveAndPostResultToDag(moment.utc(row.fixture_date) ,row.result_url, calendar.getChampionshipFromFeedName(row.feed_name), row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function(text, retrieved_value) {
+							retrieveAndPostResultToDag(moment.utc(row.fixture_date), row.result_url, calendar.getChampionshipFromFeedName(row.feed_name), row.feed_name, calendar.getResultHelperFromFeedName(row.feed_name), function(text, retrieved_value) {
 								if (retrieved_value){
 									postResultToAas(row.feed_name, retrieved_value, postToAaCallbacks);
 								}
