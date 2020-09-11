@@ -29,6 +29,10 @@
 			"abbreviation": "BCS",
 			"name": "Hertha BSC"
 		},
+		"10": {
+			"abbreviation": "VFB",
+			"name": "VfB Stuttgart"
+		},
 		"11": {
 			"abbreviation": "WOB",
 			"name": "VfL Wolfsburg"
@@ -68,6 +72,10 @@
 		"29": {
 			"abbreviation": "SCP",
 			"name": "SC Paderborn 07"
+		},
+		"38": {
+			"abbreviation": "BIE",
+			"name": "DSC Arminia Bielefeld"
 		},
 		"57": {
 			"abbreviation": "ARS",
@@ -257,9 +265,21 @@
 			"abbreviation": "ALV",
 			"name": "Deportivo Alavés"
 		},
+		"264": {
+			"abbreviation": "CAD",
+			"name": "Cádiz CF"
+		},
 		"278": {
 			"abbreviation": "EIB",
 			"name": "SD Eibar"
+		},
+		"285": {
+			"abbreviation": "ELC",
+			"name": "Elche CF"
+		},
+		"299": {
+			"abbreviation": "HUE",
+			"name": "SD Huesca"
 		},
 		"322": {
 			"abbreviation": "HUL",
@@ -329,6 +349,10 @@
 			"abbreviation": "MIL",
 			"name": "Millwall FC"
 		},
+		"385": {
+			"abbreviation": "ROT",
+			"name": "Rotherham United FC"
+		},
 		"387": {
 			"abbreviation": "BRC",
 			"name": "Bristol City FC"
@@ -360,6 +384,14 @@
 		"471": {
 			"abbreviation": "SAS",
 			"name": "US Sassuolo Calcio"
+		},
+		"472": {
+			"abbreviation": "CRO",
+			"name": "FC Crotone"
+		},
+		"488": {
+			"abbreviation": "SPE",
+			"name": "Spezia Calcio"
 		},
 		"496": {
 			"abbreviation": "RAV",
@@ -409,6 +441,10 @@
 			"abbreviation": "PSG",
 			"name": "Paris Saint-Germain FC"
 		},
+		"525": {
+			"abbreviation": "FCL",
+			"name": "FC Lorient"
+		},
 		"526": {
 			"abbreviation": "BOR",
 			"name": "FC Girondins de Bordeaux"
@@ -440,6 +476,10 @@
 		"545": {
 			"abbreviation": "MTZ",
 			"name": "FC Metz"
+		},
+		"546": {
+			"abbreviation": "RCL",
+			"name": "Racing Club de Lens"
 		},
 		"547": {
 			"abbreviation": "REI",
@@ -624,6 +664,10 @@
 		"1081": {
 			"abbreviation": "PNE",
 			"name": "Preston North End FC"
+		},
+		"1106": {
+			"abbreviation": "BEN",
+			"name": "Benevento Calcio"
 		},
 		"1107": {
 			"abbreviation": "SPA",
