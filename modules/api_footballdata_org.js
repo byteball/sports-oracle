@@ -31,32 +31,33 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 		 else
 			return handle('Wrong format of data');
 
+		let fixture = encodeFixture(championship, match);
+		if (!fixture)
+			return handle("Couldn't encode fixture");
 		if (match.status == "FINISHED") {
 			if (match.score && match.score.fullTime.homeTeam != null) {
-					let fixture = encodeFixture(championship, match);
-					if (!fixture)
-						return handle("Couldn't encode fixture");
-					if (fixture.feedName === expectedFeedName){
-						if (Number(match.score.fullTime.awayTeam) > Number(match.score.fullTime.homeTeam)) {
-							fixture.winner = fixture.awayTeam;
-							fixture.winnerCode = fixture.feedAwayTeamName;
-						}
-						if (Number(match.score.fullTime.awayTeam) < Number(match.score.fullTime.homeTeam)) {
-							fixture.winner = fixture.homeTeam;
-							fixture.winnerCode = fixture.feedHomeTeamName;
-						}
-						if (Number(match.score.fullTime.awayTeam) == Number(match.score.fullTime.homeTeam)) {
-							fixture.winner = 'draw';
-							fixture.winnerCode = 'draw';
-						}
-						return handle(null, fixture);
-						
-						} else {
-							return handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);	
-						}
-				} else {
-					return handle('No result in response');
-				}
+
+				if (fixture.feedName === expectedFeedName){
+					if (Number(match.score.fullTime.awayTeam) > Number(match.score.fullTime.homeTeam)) {
+						fixture.winner = fixture.awayTeam;
+						fixture.winnerCode = fixture.feedAwayTeamName;
+					}
+					if (Number(match.score.fullTime.awayTeam) < Number(match.score.fullTime.homeTeam)) {
+						fixture.winner = fixture.homeTeam;
+						fixture.winnerCode = fixture.feedHomeTeamName;
+					}
+					if (Number(match.score.fullTime.awayTeam) == Number(match.score.fullTime.homeTeam)) {
+						fixture.winner = 'draw';
+						fixture.winnerCode = 'draw';
+					}
+					return handle(null, fixture);
+					
+					} else {
+						return handle('The feedname is not the expected one, feedname found: ' + fixture.feedName);	
+					}
+			} else {
+				return handle('No result in response');
+			}
 				
 		} else if (match.status == "POSTPONED" || match.status == "CANCELLED" ||  match.status == "CANCELED"){
 			fixture.winner = 'canceled';
