@@ -1100,7 +1100,7 @@
 			"abbreviation": "ARI"
 		},
 		"Chargers": {
-			"abbreviation": "LAC"
+			"abbreviation": "LA"
 		},
 		"Chiefs": {
 			"abbreviation": "KC"
@@ -1121,13 +1121,13 @@
 			"abbreviation": "ATL"
 		},
 		"Giants": {
-			"abbreviation": "NYG"
+			"abbreviation": "NY"
 		},
 		"Jaguars": {
-			"abbreviation": "JAC"
+			"abbreviation": "JAX"
 		},
 		"Jets": {
-			"abbreviation": "NYJ"
+			"abbreviation": "NY"
 		},
 		"Lions": {
 			"abbreviation": "DET"
@@ -1139,10 +1139,10 @@
 			"abbreviation": "CAR"
 		},
 		"Patriots": {
-			"abbreviation": "NEP"
+			"abbreviation": "NE"
 		},
 		"Raiders": {
-			"abbreviation": "OAK"
+			"abbreviation": "LV"
 		},
 		"Rams": {
 			"abbreviation": "LAR"
