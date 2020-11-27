@@ -29,8 +29,7 @@ function checkAndAddRequestedFixture(params){
 	if (params.oracle !== my_address)
 		return;
 	
-	const feedName = params.championship + '_' +  params.home_team + '_'  +  params.away_team + '_' +  params.expiry_date;
-	console.log(feedName);
+	const feedName = params.championship + '_' +  params.home_team + '_'  +  params.away_team + '_' +  params.fixture_date;
 	var fixture = calendar.getFixtureFromFeedName(feedName);
 		console.log(fixture);
 	if (fixture){
