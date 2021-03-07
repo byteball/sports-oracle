@@ -17,6 +17,7 @@ const mySportFeed = require('./modules/api_mysportfeed.js');
 const footballDataOrg = require('./modules/api_footballdata_org.js');
 const theScore = require('./modules/api_thescore.js');
 const validationUtils = require('ocore/validation_utils.js');
+const storage = require('ocore/storage.js');
 require('./modules/aa_watcher.js');
 
 var assocPeers = [];
@@ -557,14 +558,19 @@ function checkUsingSecondSource(championship, feedName, UTCdate, result, callbac
 
 
 
-eventBus.on('my_transactions_became_stable', function(arrUnits) {
-
-	db.query("SELECT feed_name,value FROM data_feeds WHERE unit IN(?)", [arrUnits], function(rows) {
-		rows.forEach(row => {
-			notifyForDatafeedPosted(row.feed_name, row.value);
-		});
-	});
-
+eventBus.on('my_transactions_became_stable', async function(arrUnits) {
+	const rows = await db.query("SELECT unit FROM messages WHERE unit IN(?) AND app='data_feed'", [arrUnits]);
+	for (let { unit } of rows) {
+		const objUnit = await storage.readUnit(unit);
+		if (!objUnit)
+			throw Error(`failed to read unit ${unit}`);
+		const message = objUnit.messages.find(m => m.app === 'data_feed');
+		if (!message)
+			throw Error(`no data feed message in unit ${unit}`);
+		const { payload } = message;
+		for (let feed_name in payload)
+			notifyForDatafeedPosted(feed_name, payload[feed_name]);
+	}
 });
 
 
