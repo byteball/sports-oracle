@@ -37,7 +37,7 @@ function loadChampionships(){
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','DED', 'https://api.football-data.org/v2/competitions/2003/matches');
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BSA', 'https://api.football-data.org/v2/competitions/2013/matches');
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','PD', 'https://api.football-data.org/v2/competitions/2014/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','L1', 'https://api.football-data.org/v2/competitions/2015/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','FL1', 'https://api.football-data.org/v2/competitions/2015/matches');
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','SA', 'https://api.football-data.org/v2/competitions/2019/matches');
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','PL', 'https://api.football-data.org/v2/competitions/2021/matches');
 }
