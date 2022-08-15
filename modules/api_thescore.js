@@ -39,7 +39,7 @@ function checkResult(championship, feedNameToCheck, UTCdate, result, callbacks) 
 						var feedHomeTeamName = soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name];
 						var feedAwayTeamName = soccerTeamsCorrespondence[championship][parsedBody.away_team.full_name];
 					} else {
-						notifications.notifyAdmin("Couldn't find a correspondence for " + feedNameToCheck + " from thescore", ' ');
+						notifications.notifyAdmin("Couldn't find a correspondence for " + feedNameToCheck + " from thescore", `Championship ${championship}, home ${parsedBody.home_team.full_name}, away ${parsedBody.away_team.full_name}`);
 						return next();
 					}
 				} else {
