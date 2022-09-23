@@ -4,17 +4,16 @@ const request = require('request');
 const conf = require('ocore/conf.js');
 const fs = require('fs');
 const commons = require('../modules/commons.js');
+const { soccerCompetitions } = require('../soccerCompetitions.js');
 
 var headers = {
 	'X-Auth-Token': conf.footballDataApiKey
 };
 
-var arrCompetitions = [2001, 2002, 2003, 2013, 2014, 2015, 2016, 2017, 2019, 2021];
-
 var assocConversions = {};
 var assocFeednames = {};
 
-getCompetitionsSequentially(arrCompetitions);
+getCompetitionsSequentially(soccerCompetitions);
 
 function getCompetitionsSequentially(array) {
 	request({

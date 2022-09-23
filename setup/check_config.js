@@ -4,11 +4,10 @@ const request = require('request');
 const conf = require('ocore/conf.js');
 const fs = require('fs');
 const async = require('async');
+const PATH = require('path');
+const { soccerCompetitions } = require('../soccerCompetitions');
 
-var arrSoccerCompetitions = [2001, 2002, 2003, 2013, 2014, 2015, 2016, 2017, 2019, 2021];
-
-
-checkSoccerCompetitionsSequentially(arrSoccerCompetitions);
+checkSoccerCompetitionsSequentially(soccerCompetitions);
 checkTheScoreTeamsCorrespondence();
 
 async function checkSoccerCompetitionsSequentially(array) {
@@ -30,7 +29,7 @@ async function checkSoccerCompetitionsSequentially(array) {
 					};
 					arrMissingAbbreviations.push(team.name);
 				} else {
-					if (abbreviations.soccer[team.id].abbreviation.length == 0)
+					if (!abbreviations.soccer[team.id].abbreviation || abbreviations.soccer[team.id].abbreviation.length == 0)
 						arrMissingAbbreviations.push(team.name);
 				}
 			});
@@ -42,7 +41,7 @@ async function checkSoccerCompetitionsSequentially(array) {
 				}, 500);
 
 			} else {
-				fs.writeFile("../config/abbreviations.json", JSON.stringify(abbreviations,null,'\t'), (err) => {
+				fs.writeFile(PATH.resolve(__dirname + "../../config/abbreviations.json"), JSON.stringify(abbreviations,null,'\t'), (err) => {
 					if (err)
 						throw Error("Could'nt write ../config/abbreviations.json" + err);
 					if(arrMissingAbbreviations.length > 0) {
@@ -77,8 +76,10 @@ function checkTheScoreTeamsCorrespondence(){
 			url: 'https://api.thescore.com/' + theScoreTeamsCorrespondence[league].theScoreKeyURL + '/teams'
 		}, 
 		function(error, response, body) {
-			if (error || response.statusCode !== 200) 
-				throw Error("couldn t get theScore league " + league +", error: " + error);
+			if (error || response.statusCode !== 200) {
+				console.error(`thescore request error: couldn t get theScore ${league} league`, error);
+				return;
+			} 
 
 			console.log("\nParsing the Score team for competition :" + league);
 			var parsedBody = JSON.parse(body);
@@ -96,7 +97,7 @@ function checkTheScoreTeamsCorrespondence(){
 		});
 	},
 	function(){
-		fs.writeFile("../config/theScoreSoccerTeamsCorrespondence.json", JSON.stringify(theScoreTeamsCorrespondence,null,'\t'), (err) => {
+		fs.writeFile(PATH.resolve(__dirname + "../../config/theScoreSoccerTeamsCorrespondence.json"), JSON.stringify(theScoreTeamsCorrespondence,null,'\t'), (err) => {
 			if (err)
 				throw Error("Could'nt write ./config/theScoreSoccerTeamsCorrespondence.json" + err);
 
