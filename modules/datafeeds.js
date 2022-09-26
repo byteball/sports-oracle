@@ -72,7 +72,7 @@ function readExisting(feed_name, handleResult) {
 	if (unstableDatafeedValue)
 		return handleResult(true, false, unstableDatafeedValue);
 
-	data_feeds.readDataFeedValue([my_address], feed_name, null, 0, Infinity, false, "last", function(objResult){
+	data_feeds.readDataFeedValue([my_address], feed_name, null, 0, Infinity, false, "last", null, function(objResult){
 		if (objResult.value === undefined)
 			return handleResult(false);
 		return handleResult(true, true, objResult.value);
