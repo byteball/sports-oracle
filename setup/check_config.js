@@ -78,7 +78,7 @@ function checkTheScoreTeamsCorrespondence(){
 		function(error, response, body) {
 			if (error || response.statusCode !== 200) {
 				console.error(`thescore request error: couldn t get theScore ${league} league`, error);
-				return;
+				return cb();
 			} 
 
 			console.log("\nParsing the Score team for competition :" + league);
