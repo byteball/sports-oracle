@@ -6,7 +6,7 @@ const calendar = require('./calendar.js');
 const conf = require('ocore/conf.js');
 const commons = require('./commons.js');
 const notifications = require('./notifications.js');
-const abbreviations = require('../config/abbreviations.json');
+const abbreviations = require('abbreviations');
 
 var reloadInterval = 1000*3600*24;
 

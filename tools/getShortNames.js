@@ -4,8 +4,7 @@ const request = require('request');
 const conf = require('ocore/conf.js');
 const fs = require('fs');
 const commons = require('../modules/commons.js');
-const { soccerCompetitions } = require('../soccerCompetitions.js');
-
+const { soccerCompetitions } = require('abbreviations/soccerCompetitions')
 var headers = {
 	'X-Auth-Token': conf.footballDataApiKey
 };
