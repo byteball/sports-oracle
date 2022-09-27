@@ -2,7 +2,7 @@
 "use strict";
 const db = require('ocore/db.js');
 const async = require('async');
-const abbreviations = require('../config/abbreviations.json');
+const abbreviations = require('abbreviations');
 
 function getTxtCommandButton(label, command) {
 	var text = "";

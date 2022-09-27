@@ -24,10 +24,11 @@
 		"secp256k1": "secp256k1/js"
 	},
 	"dependencies": {
-		"moment": "^2.18.1",
-		"request": "^2.79.0",
+		"abbreviations": "git+https://github.com/byteball/sport-abbreviations.git",
 		"btoa": "^1.1.2",
+		"moment": "^2.18.1",
+		"obyte-witness": "git+https://github.com/byteball/obyte-witness.git",
 		"ocore": "git+https://github.com/byteball/ocore.git",
-		"obyte-witness": "git+https://github.com/byteball/obyte-witness.git"
+		"request": "^2.79.0"
 	}
 }
