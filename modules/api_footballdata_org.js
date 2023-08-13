@@ -110,7 +110,7 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 					var arrRawFixtures = jsonResult.matches;
 				} catch (e) {
 					if (firstCalendarLoading) {
-						throw Error('error parsing football-data response: ' + e.toString() + ", response: " + body);
+						throw Error('error parsing football-data response to ' + url + ': ' + e.toString() + ", response: " + body);
 					} else {
 						return notifications.notifyAdmin("I couldn't parse " + championship + " today", "");
 					}
