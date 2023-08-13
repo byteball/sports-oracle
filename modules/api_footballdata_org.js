@@ -6,7 +6,7 @@ const calendar = require('./calendar.js');
 const conf = require('ocore/conf.js');
 const commons = require('./commons.js');
 const notifications = require('./notifications.js');
-const abbreviations = require('abbreviations');
+const abbreviations = require('sport-abbreviations');
 
 var reloadInterval = 1000*3600*24;
 
