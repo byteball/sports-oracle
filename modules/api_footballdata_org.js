@@ -72,8 +72,8 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 	calendar.addResultHelper(category, championship, resultHelper);
 	
 	function encodeFixture(championship, fixture) {
-		let feedHomeTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.home.id);
-		let feedAwayTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.away.id);
+		let feedHomeTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.homeTeam.id);
+		let feedAwayTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.awayTeam.id);
 		if (!feedHomeTeamName ||!feedAwayTeamName)
 			return null;
 		let localDay = moment.utc(fixture.utcDate);
@@ -81,8 +81,8 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 			localDay.subtract(4, 'hours');
 		}
 		return {
-			homeTeam: abbreviations['soccer'][fixture.home.id].name,
-			awayTeam: abbreviations['soccer'][fixture.away.id].name,
+			homeTeam: abbreviations['soccer'][fixture.homeTeam.id].name,
+			awayTeam: abbreviations['soccer'][fixture.awayTeam.id].name,
 			feedHomeTeamName: feedHomeTeamName,
 			feedAwayTeamName: feedAwayTeamName,
 			feedName: championship + '_' + feedHomeTeamName + '_' + feedAwayTeamName + '_' + localDay.format("YYYY-MM-DD"),
