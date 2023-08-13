@@ -19,9 +19,8 @@ function checkResult(championship, feedNameToCheck, UTCdate, result, callbacks) 
 			notifications.notifyAdmin("arrayEventIds empty when checking " + feedNameToCheck, ' ');
 			return callbacks.ifCriticalError();
 		}
-		request({
-			url: 'https://api.thescore.com/' + theScoreKeyURL + '/events/' + arrayEventIds[0]
-		}, function(error, response, body) {
+		const url = 'https://api.thescore.com/' + theScoreKeyURL + '/events/' + arrayEventIds[0];
+		request({ url }, function(error, response, body) {
 			if (error || response.statusCode !== 200) 
 				return callbacks.ifError();
 			
@@ -39,7 +38,7 @@ function checkResult(championship, feedNameToCheck, UTCdate, result, callbacks) 
 						var feedHomeTeamName = soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name];
 						var feedAwayTeamName = soccerTeamsCorrespondence[championship][parsedBody.away_team.full_name];
 					} else {
-						notifications.notifyAdmin("Couldn't find a correspondence for " + feedNameToCheck + " from thescore", `Championship ${championship}, home ${parsedBody.home_team.full_name}, away ${parsedBody.away_team.full_name}`);
+						notifications.notifyAdmin("Couldn't find a correspondence for " + feedNameToCheck + " from thescore", `Championship ${championship}, home ${parsedBody.home_team.full_name}, away ${parsedBody.away_team.full_name}, url ${url}`);
 						return next();
 					}
 				} else {
