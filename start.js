@@ -32,22 +32,22 @@ function loadChampionships(){
 	//mySportFeed.getFixturesAndPushIntoCalendar('Basketball', 'NBA', 'https://api.mysportsfeeds.com/v1.1/pull/nba/2020-playoff/');
 	//mySportFeed.getFixturesAndPushIntoCalendar('Ice hockey', 'NHL', 'https://api.mysportsfeeds.com/v1.1/pull/nhl/2019-regular/');
 
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','WC', 'https://api.football-data.org/v2/competitions/2000/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CL', 'https://api.football-data.org/v2/competitions/2001/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BL1', 'https://api.football-data.org/v2/competitions/2002/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','DED', 'https://api.football-data.org/v2/competitions/2003/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BSA', 'https://api.football-data.org/v2/competitions/2013/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','PD', 'https://api.football-data.org/v2/competitions/2014/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','FL1', 'https://api.football-data.org/v2/competitions/2015/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','ELC', 'https://api.football-data.org/v2/competitions/2016/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','PPL', 'https://api.football-data.org/v2/competitions/2017/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','EC', 'https://api.football-data.org/v2/competitions/2018/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','SA', 'https://api.football-data.org/v2/competitions/2019/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','PL', 'https://api.football-data.org/v2/competitions/2021/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','ASL', 'https://api.football-data.org/v2/competitions/2024/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BSB', 'https://api.football-data.org/v2/competitions/2029/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CSL', 'https://api.football-data.org/v2/competitions/2044/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CLI', 'https://api.football-data.org/v2/competitions/2152/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','WC', 'https://api.football-data.org/v4/competitions/2000/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CL', 'https://api.football-data.org/v4/competitions/2001/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BL1', 'https://api.football-data.org/v4/competitions/2002/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','DED', 'https://api.football-data.org/v4/competitions/2003/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BSA', 'https://api.football-data.org/v4/competitions/2013/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','PD', 'https://api.football-data.org/v4/competitions/2014/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','FL1', 'https://api.football-data.org/v4/competitions/2015/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','ELC', 'https://api.football-data.org/v4/competitions/2016/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','PPL', 'https://api.football-data.org/v4/competitions/2017/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','EC', 'https://api.football-data.org/v4/competitions/2018/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','SA', 'https://api.football-data.org/v4/competitions/2019/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','PL', 'https://api.football-data.org/v4/competitions/2021/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','ASL', 'https://api.football-data.org/v4/competitions/2024/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BSB', 'https://api.football-data.org/v4/competitions/2029/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CSL', 'https://api.football-data.org/v4/competitions/2044/matches');
+	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CLI', 'https://api.football-data.org/v4/competitions/2152/matches');
 }
 
 if (conf.bRunWitness)

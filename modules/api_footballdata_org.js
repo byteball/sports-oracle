@@ -35,18 +35,18 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 		if (!fixture)
 			return handle("Couldn't encode fixture");
 		if (match.status == "FINISHED") {
-			if (match.score && match.score.fullTime.homeTeam != null) {
+			if (match.score && match.score.fullTime.home != null) {
 
 				if (fixture.feedName === expectedFeedName){
-					if (Number(match.score.fullTime.awayTeam) > Number(match.score.fullTime.homeTeam)) {
+					if (Number(match.score.fullTime.away) > Number(match.score.fullTime.home)) {
 						fixture.winner = fixture.awayTeam;
 						fixture.winnerCode = fixture.feedAwayTeamName;
 					}
-					if (Number(match.score.fullTime.awayTeam) < Number(match.score.fullTime.homeTeam)) {
+					if (Number(match.score.fullTime.away) < Number(match.score.fullTime.home)) {
 						fixture.winner = fixture.homeTeam;
 						fixture.winnerCode = fixture.feedHomeTeamName;
 					}
-					if (Number(match.score.fullTime.awayTeam) == Number(match.score.fullTime.homeTeam)) {
+					if (Number(match.score.fullTime.away) == Number(match.score.fullTime.home)) {
 						fixture.winner = 'draw';
 						fixture.winnerCode = 'draw';
 					}
@@ -72,8 +72,8 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 	calendar.addResultHelper(category, championship, resultHelper);
 	
 	function encodeFixture(championship, fixture) {
-		let feedHomeTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.homeTeam.id);
-		let feedAwayTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.awayTeam.id);
+		let feedHomeTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.home.id);
+		let feedAwayTeamName = commons.convertPrimaryTeamIdToFeedName('soccer', fixture.away.id);
 		if (!feedHomeTeamName ||!feedAwayTeamName)
 			return null;
 		let localDay = moment.utc(fixture.utcDate);
@@ -81,12 +81,12 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 			localDay.subtract(4, 'hours');
 		}
 		return {
-			homeTeam: abbreviations['soccer'][fixture.homeTeam.id].name,
-			awayTeam: abbreviations['soccer'][fixture.awayTeam.id].name,
+			homeTeam: abbreviations['soccer'][fixture.home.id].name,
+			awayTeam: abbreviations['soccer'][fixture.away.id].name,
 			feedHomeTeamName: feedHomeTeamName,
 			feedAwayTeamName: feedAwayTeamName,
 			feedName: championship + '_' + feedHomeTeamName + '_' + feedAwayTeamName + '_' + localDay.format("YYYY-MM-DD"),
-			urlResult: "https://api.football-data.org/v2/matches/"+ fixture.id,
+			urlResult: "https://api.football-data.org/v4/matches/"+ fixture.id,
 			date: moment.utc(fixture.utcDate),
 			localDay: localDay
 		}

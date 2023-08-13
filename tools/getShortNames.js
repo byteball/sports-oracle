@@ -16,7 +16,7 @@ getCompetitionsSequentially(soccerCompetitions);
 
 function getCompetitionsSequentially(array) {
 	request({
-		url: "https://api.football-data.org/v2/competitions/" + array[0] + "/teams",
+		url: "https://api.football-data.org/v4/competitions/" + array[0] + "/teams",
 		headers: headers
 	}, function(error, response, body) {
 		console.log(body);
