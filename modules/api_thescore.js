@@ -130,7 +130,8 @@ function checkResult(championship, feedNameToCheck, UTCdate, result, callbacks) 
 
 			if (!dayOrWeekFound) {
 				notifications.notifyAdmin("Day not found for " + feedNameToCheck, JSON.stringify(parsedBody));
-				return callbacks.ifCriticalError();
+			//	return callbacks.ifCriticalError();
+				return callbacks.ifOK();
 			}
 
 
