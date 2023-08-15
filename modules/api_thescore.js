@@ -33,11 +33,11 @@ function checkResult(championship, feedNameToCheck, UTCdate, result, callbacks) 
 			}
 
 			if (parsedBody.status && (parsedBody.status == "final" || parsedBody.status == "postponed")) {
-				if (soccerTeamsCorrespondence[championship]){
-					if (soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name] && soccerTeamsCorrespondence[championship][parsedBody.away_team.full_name]){
-						var feedHomeTeamName = soccerTeamsCorrespondence[championship][parsedBody.home_team.full_name];
-						var feedAwayTeamName = soccerTeamsCorrespondence[championship][parsedBody.away_team.full_name];
-					} else {
+				const corr = soccerTeamsCorrespondence[championship];
+				if (corr) {
+					var feedHomeTeamName = corr[parsedBody.home_team.full_name] || corr[parsedBody.home_team.name];
+					var feedAwayTeamName = corr[parsedBody.away_team.full_name] || corr[parsedBody.away_team.name];
+					if (!feedAwayTeamName || !feedHomeTeamName) {
 						notifications.notifyAdmin("Couldn't find a correspondence for " + feedNameToCheck + " from thescore", `Championship ${championship}, home ${parsedBody.home_team.full_name}, away ${parsedBody.away_team.full_name}, url ${url}`);
 						return next();
 					}
