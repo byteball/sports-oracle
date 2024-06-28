@@ -46,7 +46,7 @@ function loadChampionships(){
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','PL', 'https://api.football-data.org/v4/competitions/2021/matches');
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','ASL', 'https://api.football-data.org/v4/competitions/2024/matches');
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','BSB', 'https://api.football-data.org/v4/competitions/2029/matches');
-	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CSL', 'https://api.football-data.org/v4/competitions/2044/matches');
+//	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CSL', 'https://api.football-data.org/v4/competitions/2044/matches');
 	footballDataOrg.getFixturesAndPushIntoCalendar('Soccer','CLI', 'https://api.football-data.org/v4/competitions/2152/matches');
 }
 
