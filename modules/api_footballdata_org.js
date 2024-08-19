@@ -117,9 +117,9 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 				}
 				if (arrRawFixtures.length == 0) {
 					if (firstCalendarLoading) {
-						throw Error(`fixtures array empty, couldn't get ${championship} fixtures from footballDataOrg ${url}`);
+						throw Error(`fixtures array empty, couldn't get ${championship} fixtures from footballDataOrg ${url}: ${body}`);
 					} else {
-						return notifications.notifyAdmin("I couldn't get fixtures from " + championship + " today", url);
+						return notifications.notifyAdmin("I couldn't get fixtures from " + championship + " today", url + '\n\n' + body);
 					}
 				}
 
