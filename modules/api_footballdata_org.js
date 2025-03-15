@@ -99,9 +99,9 @@ function getFixturesAndPushIntoCalendar(category, championship, url) {
 			}, function(error, response, body) {
 				if (error || response.statusCode !== 200) {
 					if (firstCalendarLoading) {
-						throw Error('couldn t get fixtures from footballDataOrg ' + url + '\n' + body);
+						throw Error('couldn t get fixtures from footballDataOrg ' + url + '\nError: ' + error + '\n' + body);
 					} else {
-						return notifications.notifyAdmin("I couldn't get " + championship + " calendar today", "");
+						return notifications.notifyAdmin("I couldn't get footballDataOrg " + championship + " calendar today", `status code ${response.statusCode}\n${error}`);
 					}
 				}
 

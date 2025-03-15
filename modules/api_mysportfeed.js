@@ -180,7 +180,7 @@ function getFixturesAndPushIntoCalendar (category, championship, url) {
 				if (firstCalendarLoading) {
 					throw Error("couldn't get events from MySportsFeedsCom " + url);
 				} else {
-					return notifications.notifyAdmin("I couldn't get " + championship + " calendar today", "");
+					return notifications.notifyAdmin("I couldn't get MySportFeeds " + championship + " calendar today", `status code ${response.statusCode}\n${error}`);
 				}
 			}
 
